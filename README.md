@@ -2,9 +2,23 @@
 
 
 
+
 `term-clean` is a terminal TUI (Text User Interface) cleanup tool designed specifically for macOS users. It helps you easily manage, analyze, and clean up packages installed by various package managers (brew, npm, pnpm, yarn, pip).
 
 ![Main Interface](doc/main.png)
+## 🎯 Why Term-Clean?
+
+Term-Clean is built for you if you've ever faced these scenarios:
+
+- **"I have low disk space, but I don't know what's taking up space..."**
+  > 📊 Term-Clean visualizes disk usage, helping you instantly spot large, unused packages.
+
+- **"I'm afraid uninstalling `ffmpeg` will break my other tools..."**
+  > 🛡️ With recursive dependency analysis and safe uninstall preview, you'll always know the impact before you act.
+
+- **"I followed a tutorial, installed 20 packages, and now I'm afraid to touch them..."**
+  > 🔍 Say goodbye to "dependency anxiety". Term-Clean clarifies what each package does and who needs it.
+
 ## 🌟 Core Features
 
 - 📦 **Multi-Manager Support**: One-stop management for Homebrew (Formulae & Casks), npm, pnpm, yarn, and pip.
