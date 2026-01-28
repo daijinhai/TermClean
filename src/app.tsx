@@ -9,7 +9,6 @@ import {
     TabBar,
     LoadingSpinner,
     PreviewModal,
-    CyberpunkLoader,
     PackageDetails,
     ManagerStatus,
     Dashboard,
@@ -428,17 +427,14 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
 
     const currentPackage = sortedPackages[highlightedIndex];
 
-    if (store.isLoading) {
-        // 如果是初始化扫描阶段，使用 CyberpunkLoader
-        if (managerStatuses.length > 0 && managerStatuses.some(s => s.status !== 'completed' && s.status !== 'failed')) {
-            return <CyberpunkLoader statuses={managerStatuses} />;
-        }
-        // 其他加载情况（如刷新、卸载）使用普通 Spinner
-        return <LoadingSpinner message="Processing..." />;
+    // 如果处于 Dashboard 视图，由 Dashboard 组件自己处理 Loading 状态展示
+    if (store.currentView === 'dashboard') {
+        return <Dashboard isLoading={store.isLoading} statuses={managerStatuses} />;
     }
 
-    if (store.currentView === 'dashboard') {
-        return <Dashboard />;
+    // 如果不在 Dashboard 但仍处于 Loading (例如刷新列表)，显示简单 Spinner
+    if (store.isLoading) {
+        return <LoadingSpinner message="Processing..." />;
     }
 
     if (preview) {
