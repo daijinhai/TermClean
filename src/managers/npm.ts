@@ -2,6 +2,7 @@ import { BasePackageManager } from './base.js';
 import type { Package, Dependency, DependencyType } from '../types/index.js';
 import { getDirectorySize, pathExists } from '../utils/path.js';
 import path from 'path';
+import fs from 'fs/promises';
 import os from 'os';
 
 /**
@@ -99,6 +100,17 @@ export class NpmPackageManager extends BasePackageManager {
     ): Promise<Package | null> {
         const installPath = await this.getPackagePath(name, isGlobal);
 
+        // 获取真实文件时间
+        let installedDate = new Date();
+        let modifiedDate = new Date();
+        try {
+            const stats = await fs.stat(installPath);
+            installedDate = stats.birthtime;
+            modifiedDate = stats.mtime;
+        } catch (e) {
+            // ignore error, fallback to now
+        }
+
         // 描述改为异步加载，启动时不获取（太慢，需要网络请求）
         return {
             name,
@@ -107,8 +119,8 @@ export class NpmPackageManager extends BasePackageManager {
             installPath,
             size: 0,
             dependenciesSize: 0,
-            installedDate: new Date(),
-            modifiedDate: new Date(),
+            installedDate,
+            modifiedDate,
             description: '', // 后续异步加载
             isDev: false,
             isGlobal,

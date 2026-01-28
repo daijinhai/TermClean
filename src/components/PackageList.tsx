@@ -11,15 +11,32 @@ interface PackageListProps {
     highlightedIndex: number;
 }
 
-const ColumnHeader = () => (
-    <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderBottom={true} borderColor="gray" paddingX={1} marginBottom={0}>
-        <Box width={4}><Text bold color="gray">   </Text></Box>
-        <Box width="35%"><Text bold color="gray">NAME</Text></Box>
-        <Box width="20%"><Text bold color="gray">VERSION</Text></Box>
-        <Box width="15%"><Text bold color="gray">SIZE</Text></Box>
-        <Box width="25%"><Text bold color="gray">INSTALLED</Text></Box>
-    </Box>
-);
+import { useAppStore } from '../stores/app-store.js';
+
+const ColumnHeader = () => {
+    const { sortBy, sortOrder } = useAppStore();
+
+    // Helper to render sort indicator
+    const renderHeader = (label: string, field: 'name' | 'size' | 'date') => {
+        const isSorted = sortBy === field;
+        const arrow = isSorted ? (sortOrder === 'asc' ? '▲' : '▼') : '';
+        return (
+            <Text bold color={isSorted ? 'green' : 'gray'}>
+                {label} {arrow}
+            </Text>
+        );
+    };
+
+    return (
+        <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderBottom={true} borderColor="gray" paddingX={1} marginBottom={0}>
+            <Box width={4}><Text bold color="gray">   </Text></Box>
+            <Box width="35%">{renderHeader('NAME', 'name')}</Box>
+            <Box width="20%"><Text bold color="gray">VERSION</Text></Box>
+            <Box width="15%">{renderHeader('SIZE', 'size')}</Box>
+            <Box width="25%">{renderHeader('INSTALLED', 'date')}</Box>
+        </Box>
+    );
+};
 
 export const PackageList: React.FC<PackageListProps> = ({
     packages,

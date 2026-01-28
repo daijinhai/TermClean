@@ -12,6 +12,7 @@ import {
     CyberpunkLoader,
     PackageDetails,
     ManagerStatus,
+    Dashboard,
 } from './components/index.js';
 import type { Package, PackageManagerType, UninstallPreview } from './types/index.js';
 
@@ -244,11 +245,19 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         } else if (input === 'q' || input === 'Q') {
             // 退出
             exit();
-        } else if (input === '/' || input === 's' || input === 'S') {
-            // 进入搜索模式
+        } else if (input === '/' && !searchMode && !preview) {
             setSearchMode(true);
-            setSearchInput('');
-        } else if (input === 'a' || input === 'A') {
+        }
+
+        // Toggle sort order
+        if (input === 's' && !searchMode && !preview) {
+            // Cycle: name -> size -> date -> name
+            if (store.sortBy === 'name') store.toggleSort('size');
+            else if (store.sortBy === 'size') store.toggleSort('date');
+            else store.toggleSort('name');
+        }
+
+        if (input === 'a' || input === 'A') {
             // 全选/取消全选当前过滤的包
             const allSelected = filteredPackages.every((pkg) => store.selectedPackages.has(pkg.name));
             if (allSelected) {
@@ -402,6 +411,23 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
     const totalSize = selectedPkgs.reduce((sum, pkg) => sum + pkg.size, 0);
     const dependenciesSize = selectedPkgs.reduce((sum, pkg) => sum + pkg.dependenciesSize, 0);
 
+    // 4. 应用排序
+    const sortedPackages = [...filteredPackages].sort((a, b) => {
+        const order = store.sortOrder === 'asc' ? 1 : -1;
+        if (store.sortBy === 'size') {
+            return (a.size - b.size) * order;
+        }
+        if (store.sortBy === 'date') {
+            const dateA = a.installedDate ? a.installedDate.getTime() : 0;
+            const dateB = b.installedDate ? b.installedDate.getTime() : 0;
+            return (dateA - dateB) * order;
+        }
+        // Default name sort
+        return a.name.localeCompare(b.name) * order;
+    });
+
+    const currentPackage = sortedPackages[highlightedIndex];
+
     if (store.isLoading) {
         // 如果是初始化扫描阶段，使用 CyberpunkLoader
         if (managerStatuses.length > 0 && managerStatuses.some(s => s.status !== 'completed' && s.status !== 'failed')) {
@@ -409,6 +435,10 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         }
         // 其他加载情况（如刷新、卸载）使用普通 Spinner
         return <LoadingSpinner message="Processing..." />;
+    }
+
+    if (store.currentView === 'dashboard') {
+        return <Dashboard />;
     }
 
     if (preview) {
@@ -423,27 +453,27 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         );
     }
 
-    const currentPackage = filteredPackages[highlightedIndex];
-
     return (
         <Box flexDirection="column" paddingX={2} paddingY={1}>
             {/* 顶部 Header 和 Tabs 整合 */}
             <Box borderStyle="round" borderColor="cyan" paddingX={1} justifyContent="space-between" alignItems="center" marginBottom={1}>
                 <Box>
                     <Text bold color="cyan">TERM-CLEAN</Text>
-                    <Text dimColor> v1.0</Text>
+                    <Text dimColor> v2.0</Text>
                 </Box>
 
                 <TabBar activeTab={store.managerFilter} availableManagers={availableManagers} />
 
-                <Box width={30} justifyContent="flex-end">
+                <Box width={35} justifyContent="flex-end">
                     {searchMode ? (
                         <Text color="cyan">🔍 <Text bold>{searchInput}</Text>_</Text>
                     ) : (
                         store.searchQuery ? (
                             <Text color="yellow">Filter: {store.searchQuery}</Text>
                         ) : (
-                            <Text dimColor>Press / to search</Text>
+                            <Text dimColor>
+                                Sort: <Text bold color="green">{store.sortBy.toUpperCase()}</Text> ({store.sortOrder === 'asc' ? '▲' : '▼'}) [s]
+                            </Text>
                         )
                     )}
                 </Box>
@@ -453,9 +483,9 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
             <Box flexDirection="row">
                 {/* 左侧：包列表 */}
                 <Box flexDirection="column" flexGrow={1} marginRight={1}>
-                    <CommonHeader count={filteredPackages.length} />
+                    <CommonHeader count={sortedPackages.length} />
                     <PackageList
-                        packages={filteredPackages}
+                        packages={sortedPackages}
                         selectedPackages={store.selectedPackages}
                         highlightedIndex={highlightedIndex}
                     />

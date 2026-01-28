@@ -13,8 +13,13 @@ interface AppState {
     clearSelection: () => void;
 
     // 当前视图
-    currentView: 'list' | 'detail' | 'preview';
-    setCurrentView: (view: 'list' | 'detail' | 'preview') => void;
+    currentView: 'dashboard' | 'list' | 'detail' | 'preview';
+    setCurrentView: (view: 'dashboard' | 'list' | 'detail' | 'preview') => void;
+
+    // 排序状态
+    sortBy: 'name' | 'size' | 'date';
+    sortOrder: 'asc' | 'desc';
+    toggleSort: (field: 'name' | 'size' | 'date') => void;
 
     // 高亮的包(用于详情视图)
     highlightedPackage: Package | null;
@@ -58,8 +63,21 @@ export const useAppStore = create<AppState>((set) => ({
         }),
     clearSelection: () => set({ selectedPackages: new Set() }),
 
-    currentView: 'list',
+    currentView: 'dashboard',  // 默认进入 Dashboard
     setCurrentView: (view) => set({ currentView: view }),
+
+    sortBy: 'name',
+    sortOrder: 'asc',
+    toggleSort: (field) => set((state) => {
+        if (state.sortBy === field) {
+            // 如果字段相同，反转顺序
+            return { sortOrder: state.sortOrder === 'asc' ? 'desc' : 'asc' };
+        }
+        // 如果字段不同，设置新字段和默认顺序
+        // Name 默认 asc，Size和Date 默认 desc
+        const defaultOrder = field === 'name' ? 'asc' : 'desc';
+        return { sortBy: field, sortOrder: defaultOrder };
+    }),
 
     highlightedPackage: null,
     setHighlightedPackage: (pkg) => set({ highlightedPackage: pkg }),

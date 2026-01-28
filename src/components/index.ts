@@ -6,3 +6,4 @@ export * from './LoadingSpinner.js';
 export * from './PreviewModal.js';
 export * from './CyberpunkLoader.js';
 export * from './PackageDetails.js';
+export * from './Dashboard.js';
