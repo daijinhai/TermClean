@@ -98,24 +98,18 @@ export class NpmPackageManager extends BasePackageManager {
         isGlobal: boolean
     ): Promise<Package | null> {
         const installPath = await this.getPackagePath(name, isGlobal);
-        const size = await getDirectorySize(installPath);
 
-        const dependencies = await this.getDependencies(name);
-        let dependenciesSize = 0;
-        for (const dep of dependencies) {
-            dependenciesSize += dep.size;
-        }
-
+        // 描述改为异步加载，启动时不获取（太慢，需要网络请求）
         return {
             name,
             version: info.version || 'unknown',
             manager: 'npm',
             installPath,
-            size,
-            dependenciesSize,
+            size: 0,
+            dependenciesSize: 0,
             installedDate: new Date(),
             modifiedDate: new Date(),
-            description: '',
+            description: '', // 后续异步加载
             isDev: false,
             isGlobal,
         };

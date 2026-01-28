@@ -13,6 +13,7 @@
   "scripts": {
     "dev": "tsup --watch",
     "build": "tsup",
+    "start": "node dist/cli.js",
     "type-check": "tsc --noEmit",
     "lint": "eslint src --ext .ts,.tsx",
     "lint:fix": "eslint src --ext .ts,.tsx --fix",

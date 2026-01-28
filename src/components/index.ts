@@ -4,3 +4,5 @@ export * from './HelpBar.js';
 export * from './TabBar.js';
 export * from './LoadingSpinner.js';
 export * from './PreviewModal.js';
+export * from './CyberpunkLoader.js';
+export * from './PackageDetails.js';

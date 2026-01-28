@@ -3,6 +3,7 @@ import type { Package, Dependency, PackageManagerType, DependencyType } from '..
 import { parseLines } from '../utils/command.js';
 import { getDirectorySize, pathExists } from '../utils/path.js';
 import path from 'path';
+import fs from 'fs/promises';
 
 /**
  * Homebrew包管理器适配器
@@ -18,42 +19,107 @@ export class BrewPackageManager extends BasePackageManager {
         const packages: Package[] = [];
 
         try {
-            // 获取formula包列表
-            const formulaOutput = await this.execute(['list', '--formula', '-1']);
-            const formulaNames = parseLines(formulaOutput);
+            const brewPrefix = await this.getBrewPrefix();
 
-            for (const name of formulaNames) {
-                try {
-                    const pkg = await this.getPackageInfo(name);
-                    if (pkg) {
-                        packages.push(pkg);
-                    }
-                } catch (error) {
-                    // 忽略单个包的错误,继续扫描其他包
-                    console.error(`Skipping package ${name}:`, error instanceof Error ? error.message : 'Unknown error');
-                }
+            // 1. 获取用户主动安装的包列表 (过滤掉依赖)
+            const requestedOutput = await this.execute(['list', '--installed-on-request', '-1']);
+            const requestedList = parseLines(requestedOutput);
+
+            // 2. 分批并行获取详细信息
+            // 相比之前查询所有 (--installed) 几百个包，这里只查询用户安装的几十个包
+            const batchSize = 25;
+            const formulaBatches = [];
+            for (let i = 0; i < requestedList.length; i += batchSize) {
+                formulaBatches.push(requestedList.slice(i, i + batchSize));
             }
 
-            // 获取cask包列表(GUI应用)
+            const allFormulae: any[] = [];
+            await Promise.all(formulaBatches.map(async (batch) => {
+                if (batch.length === 0) return;
+                try {
+                    // 只查询需要的包，显著减少 JSON 大小和生成时间
+                    const output = await this.execute(['info', '--formula', '--json=v2', ...batch]);
+                    const data = JSON.parse(output);
+                    if (data.formulae) allFormulae.push(...data.formulae);
+                } catch (e) {
+                    console.error('Batch info fetch failed:', e);
+                }
+            }));
+
+            // 3. 并行处理文件系统检查 (消除 IO 瓶颈)
+            const processedFormulae = await Promise.all(allFormulae.map(async (pkgData) => {
+                const name = pkgData.name;
+                const version = pkgData.versions?.stable || pkgData.installed?.[0]?.version || 'unknown';
+                const desc = pkgData.desc || '';
+
+                let installPath = path.join(brewPrefix, 'Cellar', name, version);
+                let installedDate = new Date();
+
+                // 并行检查路径和日期
+                try {
+                    if (!(await pathExists(installPath))) {
+                        const optPath = path.join(brewPrefix, 'opt', name);
+                        if (await pathExists(optPath)) installPath = optPath;
+                    }
+
+                    if (await pathExists(installPath)) {
+                        const stat = await fs.stat(installPath);
+                        installedDate = stat.mtime;
+                    }
+                } catch { }
+
+                return {
+                    name,
+                    version,
+                    manager: 'brew' as PackageManagerType,
+                    installPath,
+                    size: 0,
+                    dependenciesSize: 0,
+                    installedDate,
+                    modifiedDate: installedDate,
+                    description: desc,
+                    isDev: false,
+                    isGlobal: true,
+                };
+            }));
+            packages.push(...processedFormulae);
+
+            // 4. 处理 Cask (同样并行化)
             if (!globalOnly) {
                 try {
-                    const caskOutput = await this.execute(['list', '--cask', '-1']);
-                    const caskNames = parseLines(caskOutput);
+                    const caskListOutput = await this.execute(['list', '--cask', '-1']);
+                    const caskList = parseLines(caskListOutput);
 
-                    for (const name of caskNames) {
-                        try {
-                            const pkg = await this.getPackageInfo(name, true);
-                            if (pkg) {
-                                packages.push(pkg);
-                            }
-                        } catch (error) {
-                            // 忽略单个包的错误
-                            console.error(`Skipping cask package ${name}:`, error instanceof Error ? error.message : 'Unknown error');
+                    if (caskList.length > 0) {
+                        const caskBatches = [];
+                        for (let i = 0; i < caskList.length; i += batchSize) {
+                            caskBatches.push(caskList.slice(i, i + batchSize));
                         }
+
+                        const allCasks: any[] = [];
+                        await Promise.all(caskBatches.map(async (batch) => {
+                            try {
+                                const output = await this.execute(['info', '--cask', '--json=v2', ...batch]);
+                                const data = JSON.parse(output);
+                                if (data.casks) allCasks.push(...data.casks);
+                            } catch (e) { }
+                        }));
+
+                        packages.push(...allCasks.map(pkg => ({
+                            name: pkg.token,
+                            version: pkg.version || 'unknown',
+                            manager: 'brew-cask' as PackageManagerType,
+                            installPath: `/Applications/${pkg.name?.[0] || pkg.token}.app`,
+                            size: 0,
+                            dependenciesSize: 0,
+                            installedDate: new Date(),
+                            modifiedDate: new Date(),
+                            description: pkg.desc || '',
+                            isDev: false,
+                            isGlobal: true,
+                        })));
                     }
-                } catch {
-                    // Cask可能不可用,忽略
-                }
+                } catch { }
             }
         } catch (error) {
             console.error('Failed to list brew packages:', error);

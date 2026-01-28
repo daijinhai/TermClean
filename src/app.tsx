@@ -9,6 +9,9 @@ import {
     TabBar,
     LoadingSpinner,
     PreviewModal,
+    CyberpunkLoader,
+    PackageDetails,
+    ManagerStatus,
 } from './components/index.js';
 import type { Package, PackageManagerType, UninstallPreview } from './types/index.js';
 
@@ -25,36 +28,159 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
     const [highlightedIndex, setHighlightedIndex] = useState(0);
     const [availableManagers, setAvailableManagers] = useState<PackageManagerType[]>([]);
     const [preview, setPreview] = useState<UninstallPreview | null>(null);
+    const [confirmMode, setConfirmMode] = useState(false); // 快速确认模式
+    const [searchMode, setSearchMode] = useState(false); // 搜索模式
+    const [searchInput, setSearchInput] = useState(''); // 搜索输入
+    const [managerStatuses, setManagerStatuses] = useState<ManagerStatus[]>([]); // 管理器扫描状态
 
     // 初始化加载
     useEffect(() => {
         const init = async () => {
             store.setIsLoading(true);
             try {
-                // 获取可用的包管理器
+                // 1. 获取可用的包管理器
                 const managers = await scanner.getAvailableManagers();
                 setAvailableManagers(managers);
 
-                // 设置过滤器
+                // 初始化状态
+                setManagerStatuses(managers.map(m => ({
+                    name: m,
+                    status: 'pending',
+                    count: 0,
+                    message: 'Waiting queue...'
+                })));
+
+                // 设置过滤器（默认第一个可用管理器）
                 if (managerFilter && managerFilter !== 'all') {
                     store.setManagerFilter(managerFilter as PackageManagerType);
+                } else if (managers.length > 0) {
+                    store.setManagerFilter(managers[0]);
                 }
 
-                // 扫描包
-                const packages = await scanner.scanAll();
-                store.setPackages(packages);
+                // 2. 并行扫描所有包管理器
+                const scanPromises = managers.map(async (name) => {
+                    // 更新为扫描中
+                    setManagerStatuses(prev => prev.map(s =>
+                        s.name === name ? { ...s, status: 'scanning', message: 'Scanning...' } : s
+                    ));
+
+                    try {
+                        const pkgs = await scanner.scanByManager(name);
+
+                        // 更新为完成
+                        setManagerStatuses(prev => prev.map(s =>
+                            s.name === name ? {
+                                ...s,
+                                status: 'completed',
+                                count: pkgs.length,
+                                message: `Found ${pkgs.length} packages`
+                            } : s
+                        ));
+
+                        return pkgs;
+                    } catch (error) {
+                        // 更新为失败
+                        setManagerStatuses(prev => prev.map(s =>
+                            s.name === name ? {
+                                ...s,
+                                status: 'failed',
+                                count: 0,
+                                message: 'Scan failed'
+                            } : s
+                        ));
+                        return [];
+                    }
+                });
+
+                // 等待所有扫描完成
+                const results = await Promise.all(scanPromises);
+                const allPackages = results.flat();
+
+                // 为了让用户看清动画，人为延迟一小会儿（可选，比如 800ms）
+                // await new Promise(resolve => setTimeout(resolve, 800));
+
+                store.setPackages(allPackages);
+
+                // 异步计算包大小
+                calculatePackageSizes(allPackages);
             } catch (error) {
                 store.setError(error instanceof Error ? error.message : 'Unknown error');
             } finally {
-                store.setIsLoading(false);
+                // 确保动画能展示完整，稍微延迟一下关闭 Loading
+                setTimeout(() => store.setIsLoading(false), 500);
             }
         };
 
         init();
     }, []);
 
+    // 异步计算包大小
+    const calculatePackageSizes = async (packages: Package[]) => {
+        const { getDirectorySize } = await import('./utils/path.js');
+
+        // 分批计算，每批5个，避免阻塞
+        const batchSize = 5;
+        for (let i = 0; i < packages.length; i += batchSize) {
+            const batch = packages.slice(i, i + batchSize);
+            await Promise.all(
+                batch.map(async (pkg) => {
+                    try {
+                        const size = await getDirectorySize(pkg.installPath);
+                        if (size > 0) {
+                            store.updatePackageSize(pkg.name, size);
+                        }
+                    } catch {
+                        // 忽略单个包的大小计算错误
+                    }
+                })
+            );
+        }
+    };
+
+
     // 键盘输入处理
     useInput((input, key) => {
+        // 快速确认模式处理
+        if (confirmMode) {
+            if (input === 'y' || input === 'Y') {
+                handleQuickUninstall();
+            } else {
+                setConfirmMode(false);
+                store.setError('Uninstall cancelled');
+            }
+            return;
+        }
+
+        // 搜索模式处理
+        if (searchMode) {
+            if (key.escape || input === 'q' || input === 'Q') {
+                // Esc 或 q 退出搜索模式
+                setSearchMode(false);
+                setSearchInput('');
+                store.setSearchQuery('');
+                return;
+            } else if (key.return) {
+                // Enter 确认搜索并退出搜索模式
+                setSearchMode(false);
+                return;
+            } else if (key.backspace || key.delete) {
+                const newInput = searchInput.slice(0, -1);
+                setSearchInput(newInput);
+                store.setSearchQuery(newInput);
+                setHighlightedIndex(0);
+                return;
+            } else if (key.upArrow || key.downArrow || key.tab) {
+                // 允许在搜索模式下使用上下键和 Tab，不返回，继续执行后面的逻辑
+            } else if (input && input.length === 1 && !key.ctrl && !key.meta) {
+                const newInput = searchInput + input;
+                setSearchInput(newInput);
+                store.setSearchQuery(newInput);
+                setHighlightedIndex(0);
+                return;
+            }
+            // 其他情况继续执行后面的逻辑
+        }
+
         // 如果在预览模式
         if (preview) {
             if (input === 'c' || input === 'C') {
@@ -72,6 +198,22 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
             setHighlightedIndex(Math.max(0, highlightedIndex - 1));
         } else if (key.downArrow) {
             setHighlightedIndex(Math.min(filteredPackages.length - 1, highlightedIndex + 1));
+        } else if (key.tab) {
+            // 切换 Tab (在可用管理器之间循环，移除了 all)
+            const tabs = availableManagers;
+            const currentIndex = tabs.indexOf(store.managerFilter as PackageManagerType);
+            const shift = key.shift;
+
+            let nextIndex;
+            if (shift) {
+                nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            } else {
+                nextIndex = (currentIndex + 1) % tabs.length;
+            }
+
+            store.setManagerFilter(tabs[nextIndex]);
+            setHighlightedIndex(0);
+            // 切换 Tab 后重置选中位置
         } else if (input === ' ') {
             // 空格选择/取消选择
             const pkg = filteredPackages[highlightedIndex];
@@ -79,14 +221,57 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
                 store.togglePackage(pkg.name);
             }
         } else if (input === 'p' || input === 'P') {
-            // 预览卸载
+            // 预览卸载 (详细预览)
             handlePreview();
+        } else if (input === 'u' || input === 'U') {
+            // 快速卸载确认
+            const selectedPkgs = store.packages.filter((pkg) => store.selectedPackages.has(pkg.name));
+            if (selectedPkgs.length === 0) {
+                store.setError('⚠️ No packages selected. Use [Space] to select first.');
+            } else {
+                setConfirmMode(true);
+                store.setError(`⚠️ Uninstall ${selectedPkgs.length} package(s)? Press [y] to confirm, any key to cancel`);
+            }
+        } else if (key.return) {
+            // 显示详情 (Enter)
+            const pkg = filteredPackages[highlightedIndex];
+            if (pkg) {
+                store.setError(`Detail: ${pkg.name} | Path: ${pkg.installPath} | Desc: ${pkg.description || 'N/A'}`);
+            }
         } else if (input === 'r' || input === 'R') {
             // 刷新
             handleRefresh();
         } else if (input === 'q' || input === 'Q') {
             // 退出
             exit();
+        } else if (input === '/' || input === 's' || input === 'S') {
+            // 进入搜索模式
+            setSearchMode(true);
+            setSearchInput('');
+        } else if (input === 'a' || input === 'A') {
+            // 全选/取消全选当前过滤的包
+            const allSelected = filteredPackages.every((pkg) => store.selectedPackages.has(pkg.name));
+            if (allSelected) {
+                // 取消全选
+                filteredPackages.forEach((pkg) => {
+                    if (store.selectedPackages.has(pkg.name)) {
+                        store.togglePackage(pkg.name);
+                    }
+                });
+                store.setError(`📋 Deselected all ${filteredPackages.length} packages`);
+            } else {
+                // 全选
+                filteredPackages.forEach((pkg) => {
+                    if (!store.selectedPackages.has(pkg.name)) {
+                        store.togglePackage(pkg.name);
+                    }
+                });
+                store.setError(`📋 Selected all ${filteredPackages.length} packages`);
+            }
+        } else if (input === 'i' || input === 'I') {
+            // 反选
+            filteredPackages.forEach((pkg) => store.togglePackage(pkg.name));
+            store.setError(`📋 Inverted selection`);
         }
     });
 
@@ -131,19 +316,64 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
 
         try {
             const results = await cleaner.executeUninstall(preview.packages);
-            const log = cleaner.generateLog(preview.packages, results);
+            cleaner.generateLog(preview.packages, results);
+
+            // 获取成功卸载的包名
+            const successfullyUninstalled = new Set(
+                results.filter((r) => r.success).map((r) => r.package.name)
+            );
+
+            // 直接从列表中移除已卸载的包（不重新扫描）
+            const remainingPackages = store.packages.filter(
+                (pkg) => !successfullyUninstalled.has(pkg.name)
+            );
+            store.setPackages(remainingPackages);
 
             // 清除选择
             store.clearSelection();
 
-            // 刷新包列表
-            const packages = await scanner.scanAll();
-            store.setPackages(packages);
+            // 显示结果
+            const successCount = results.filter((r) => r.success).length;
+            store.setError(
+                `✅ Uninstalled ${successCount}/${results.length} packages successfully!`
+            );
+        } catch (error) {
+            store.setError(error instanceof Error ? error.message : 'Uninstall failed');
+        } finally {
+            store.setIsLoading(false);
+        }
+    };
+
+    // 快速卸载（跳过预览）
+    const handleQuickUninstall = async () => {
+        setConfirmMode(false);
+        const selectedPkgs = store.packages.filter((pkg) => store.selectedPackages.has(pkg.name));
+
+        if (selectedPkgs.length === 0) return;
+
+        store.setIsLoading(true);
+
+        try {
+            const results = await cleaner.executeUninstall(selectedPkgs);
+
+            // 获取成功卸载的包名
+            const successfullyUninstalled = new Set(
+                results.filter((r) => r.success).map((r) => r.package.name)
+            );
+
+            // 直接从列表中移除已卸载的包（不重新扫描）
+            const remainingPackages = store.packages.filter(
+                (pkg) => !successfullyUninstalled.has(pkg.name)
+            );
+            store.setPackages(remainingPackages);
+
+            // 清除选择
+            store.clearSelection();
 
             // 显示结果
             const successCount = results.filter((r) => r.success).length;
             store.setError(
-                `Uninstalled ${successCount}/${results.length} packages. Log saved.`
+                `✅ Uninstalled ${successCount}/${results.length} packages successfully!`
             );
         } catch (error) {
             store.setError(error instanceof Error ? error.message : 'Uninstall failed');
@@ -173,7 +403,12 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
     const dependenciesSize = selectedPkgs.reduce((sum, pkg) => sum + pkg.dependenciesSize, 0);
 
     if (store.isLoading) {
-        return <LoadingSpinner message="Scanning packages..." />;
+        // 如果是初始化扫描阶段，使用 CyberpunkLoader
+        if (managerStatuses.length > 0 && managerStatuses.some(s => s.status !== 'completed' && s.status !== 'failed')) {
+            return <CyberpunkLoader statuses={managerStatuses} />;
+        }
+        // 其他加载情况（如刷新、卸载）使用普通 Spinner
+        return <LoadingSpinner message="Processing..." />;
     }
 
     if (preview) {
@@ -188,68 +423,75 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         );
     }
 
+    const currentPackage = filteredPackages[highlightedIndex];
+
     return (
-        <Box flexDirection="column" padding={1}>
-            {/* 标题栏 */}
-            <Box borderStyle="round" borderColor="green" paddingX={1}>
-                <Text bold color="green">
-                    term-clean v1.0
-                </Text>
-                <Text> - Package Manager Cleaner</Text>
-            </Box>
-
-            {/* 标签栏 */}
-            <Box marginTop={1}>
-                <TabBar activeTab={store.managerFilter} availableManagers={availableManagers} />
-            </Box>
-
-            {/* 包列表 */}
-            <Box marginTop={1} flexDirection="column">
-                <Box paddingX={1}>
-                    <Text>
-                        📦 Packages (<Text color="yellow">{filteredPackages.length}</Text> total)
-                    </Text>
+        <Box flexDirection="column" paddingX={2} paddingY={1}>
+            {/* 顶部 Header 和 Tabs 整合 */}
+            <Box borderStyle="round" borderColor="cyan" paddingX={1} justifyContent="space-between" alignItems="center" marginBottom={1}>
+                <Box>
+                    <Text bold color="cyan">TERM-CLEAN</Text>
+                    <Text dimColor> v1.0</Text>
                 </Box>
 
-                <Box marginTop={1}>
+                <TabBar activeTab={store.managerFilter} availableManagers={availableManagers} />
+
+                <Box width={30} justifyContent="flex-end">
+                    {searchMode ? (
+                        <Text color="cyan">🔍 <Text bold>{searchInput}</Text>_</Text>
+                    ) : (
+                        store.searchQuery ? (
+                            <Text color="yellow">Filter: {store.searchQuery}</Text>
+                        ) : (
+                            <Text dimColor>Press / to search</Text>
+                        )
+                    )}
+                </Box>
+            </Box>
+
+            {/* 主体内容：左右分栏 */}
+            <Box flexDirection="row">
+                {/* 左侧：包列表 */}
+                <Box flexDirection="column" flexGrow={1} marginRight={1}>
+                    <CommonHeader count={filteredPackages.length} />
                     <PackageList
                         packages={filteredPackages}
                         selectedPackages={store.selectedPackages}
                         highlightedIndex={highlightedIndex}
-                        onToggle={store.togglePackage}
                     />
+                </Box>
+
+                {/* 右侧：详细信息 */}
+                <Box width={40} flexDirection="column">
+                    <PackageDetails pkg={currentPackage} />
                 </Box>
             </Box>
 
-            {/* 状态栏 */}
-            <Box marginTop={1}>
+            {/* 底部状态栏和帮助 */}
+            <Box marginTop={1} flexDirection="column">
                 <StatusBar
                     selectedCount={store.selectedPackages.size}
                     totalSize={totalSize}
                     dependenciesSize={dependenciesSize}
                 />
-            </Box>
 
-            {/* 帮助栏 */}
-            <Box marginTop={1}>
-                <HelpBar />
-            </Box>
+                {store.error && (
+                    <Box marginTop={0} paddingX={1}>
+                        <Text color="yellow">💡 {store.error}</Text>
+                    </Box>
+                )}
 
-            {/* 错误信息 */}
-            {store.error && (
-                <Box marginTop={1} paddingX={1}>
-                    <Text color="yellow">💡 {store.error}</Text>
+                <Box marginTop={0}>
+                    <HelpBar />
                 </Box>
-            )}
-
-            {/* 调试信息 */}
-            {debugMode && (
-                <Box marginTop={1} paddingX={1}>
-                    <Text dimColor>
-                        Debug: Highlighted={highlightedIndex} Managers={availableManagers.join(',')}
-                    </Text>
-                </Box>
-            )}
+            </Box>
         </Box>
     );
 };
+
+// 辅助组件：列表顶部标题行
+const CommonHeader = ({ count }: { count: number }) => (
+    <Box paddingX={1} marginBottom={0}>
+        <Text>📦 Found <Text color="yellow" bold>{count}</Text> packages</Text>
+    </Box>
+);

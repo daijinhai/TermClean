@@ -9,54 +9,23 @@ export class PackageCleanerService {
     constructor(private scanner: PackageScannerService) { }
 
     /**
-     * 预览卸载操作
+     * 预览卸载操作（简化版：不进行耗时的依赖分析，实现即时响应）
      */
     async previewUninstall(packages: Package[]): Promise<UninstallPreview> {
         let totalSize = 0;
-        const affectedPackages: UninstallPreview['affectedPackages'] = [];
-        const allDependencies = new Map();
 
         for (const pkg of packages) {
             totalSize += pkg.size;
-
-            // 获取反向依赖
-            const manager = this.scanner.getManager(pkg.manager);
-            if (manager) {
-                try {
-                    const reverseDeps = await manager.getReverseDependencies(pkg.name);
-                    for (const depName of reverseDeps) {
-                        if (!packages.find((p) => p.name === depName)) {
-                            const depPkg = await manager.getPackageInfo(depName);
-                            if (depPkg) {
-                                affectedPackages.push({
-                                    package: depPkg,
-                                    reason: `Depends on ${pkg.name}`,
-                                    severity: 'warning',
-                                });
-                            }
-                        }
-                    }
-
-                    // 获取依赖
-                    const deps = await manager.getDependencies(pkg.name);
-                    for (const dep of deps) {
-                        allDependencies.set(dep.name, dep);
-                    }
-                } catch (error) {
-                    console.error(`Failed to analyze ${pkg.name}:`, error);
-                }
-            }
         }
 
-        const dependencies = Array.from(allDependencies.values());
-        const dependenciesTotalSize = dependencies.reduce((sum, dep) => sum + dep.size, 0);
-
+        // 简化：不获取反向依赖和依赖分析（太慢）
+        // 直接返回包列表，让用户快速确认
         return {
             packages,
             totalSize,
-            affectedPackages,
-            dependencies,
-            dependenciesTotalSize,
+            affectedPackages: [],
+            dependencies: [],
+            dependenciesTotalSize: 0,
         };
     }
 

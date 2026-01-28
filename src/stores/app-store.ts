@@ -5,6 +5,7 @@ interface AppState {
     // 包列表
     packages: Package[];
     setPackages: (packages: Package[]) => void;
+    updatePackageSize: (packageName: string, size: number) => void;
 
     // 选中的包
     selectedPackages: Set<string>;
@@ -37,6 +38,12 @@ interface AppState {
 export const useAppStore = create<AppState>((set) => ({
     packages: [],
     setPackages: (packages) => set({ packages }),
+    updatePackageSize: (packageName, size) =>
+        set((state) => ({
+            packages: state.packages.map((pkg) =>
+                pkg.name === packageName ? { ...pkg, size } : pkg
+            ),
+        })),
 
     selectedPackages: new Set(),
     togglePackage: (packageName) =>

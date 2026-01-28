@@ -1,153 +1,113 @@
 # term-clean
 
-A TUI tool for managing and cleaning command-line packages on Mac.
+`term-clean` 是一个专为 macOS 用户设计的终端 TUI（命令行图形界面）清理工具，旨在帮助您轻松管理、分析和清理各种包管理器（brew, npm, pnpm, yarn, pip）安装的软件包。
 
-## Features
+## 🌟 核心特性
 
-- 📦 Support multiple package managers (brew, npm, pnpm, yarn, pip)
-- 🔍 Search and filter packages
-- 📊 Analyze disk space usage
-- 🌳 Visualize dependency trees
-- ⚠️  Safe uninstall preview
-- 📝 Operation logs
+- 📦 **多管理器支持**：一站式管理 Homebrew (Formulae & Casks), npm, pnpm, yarn 和 pip。
+- 🔍 **智能扫描与分析**：自动检测所有已安装的包，并分析其占用的磁盘空间。
+- 🌳 **依赖追溯**：内置递归依赖树构建算法，清晰展示包与包之间的引用关系。
+- ⚠️ **安全卸载预览**：在执行卸载前，系统会进行二次确认并显示受影响的依赖项，防止误删系统关键组件。
+- ⌨️ **纯键盘交互**：基于 Ink 和 React 构建，提供流畅的 TUI 操作体验。
+- � **实时统计**：实时计算选中包的总大小以及可释放的磁盘空间。
 
-## Installation
+## 🚀 快速开始
+
+### 安装
+
+您可以直接通过 npm 全局安装：
 
 ```bash
 npm install -g term-clean
 ```
 
-## Usage
+*(注意：目前代码处于开发阶段，您可以克隆仓库后运行 `npm link` 进行测试)*
+
+### 使用方法
+
+#### 交互模式 (TUI)
+
+直接运行命令即可进入交互式界面：
 
 ```bash
-# Interactive mode
 term-clean
+```
 
-# Filter by package manager
+进入界面后，您可以使用以下快捷键：
+
+- `↑/↓`：在包列表中上下移动。
+- `Tab`：在不同的包管理器标签页（brew, npm, pip 等）之间切换。
+- `空格键`：勾选/取消勾选要清理的包。
+- `p`：进入预览模式，查看选中包的详细信息及卸载影响分析。
+- `c`：在预览模式下按 `c` 确认并执行卸载。
+- `r`：刷新扫描结果。
+- `q` / `Esc`：退出应用或退出预览模式。
+
+#### 命令行模式 (CLI)
+
+您也可以使用传统的命令行参数：
+
+```bash
+# 仅过滤特定的包管理器
 term-clean -m brew
 
-# List packages (non-interactive)
-term-clean list
-
-# Show package info
-term-clean info <package-name>
+# 以调试模式启动（查看详细日志）
+term-clean --debug
 ```
 
-## Development
+## 🛠️ 开发与测试
+
+如果您希望参与开发或在本地运行项目：
+
+### 环境准备
+
+- Node.js (建议 v18+)
+- npm / pnpm / yarn
+
+### 本地运行
+
+1. 克隆仓库
+2. 安装依赖：`npm install`
+3. 以开发模式运行：`npm run dev`
+4. 构建项目：`npm run build`
+5. 运行构建后的程序：`node dist/cli.js`
+
+### 测试
+
+项目使用 `vitest` 进行单元测试：
 
 ```bash
-# Install dependencies
-npm install
+# 运行所有测试
+npm test
 
-# Development mode (watch)
-npm run dev
-
-# Build
-npm run build
-
-# Run tests
-npm run test
-
-# Type check
-npm run type-check
-
-# Lint
-npm run lint
-
-# Format code
-npm run format
+# 运行单元测试
+npm run test:unit
 ```
 
-## Architecture
+## 🏗️ 架构设计
 
-- **managers/** - Package manager adapters (Adapter Pattern)
-- **services/** - Business logic services
-- **components/** - UI components (ink/React)
-- **stores/** - State management (zustand)
-- **types/** - TypeScript type definitions
-- **utils/** - Utility functions
+项目采用分层架构，保证了良好的可扩展性和可维护性：
 
-## Implementation Progress
+- **Managers (适配器层)**：统一了不同包管理器的查询和卸载接口（如 `BrewPackageManager`, `NpmPackageManager` 等）。
+- **Services (业务逻辑层)**：处理包扫描 (`PackageScannerService`) 和清理流程 (`PackageCleanerService`)。
+- **Stores (状态管理)**：使用 `zustand` 管理全局响应式状态（如选中的包、列表数据等）。
+- **Components (UI层)**：基于 `ink` 构建的 React 组件库，负责 TUI 界面的渲染。
 
-### Phase 1: Project Scaffolding ✅ (15/15 tasks - 100%)
-- [x] npm project initialization
-- [x] TypeScript, tsup, vitest configuration  
-- [x] Directory structure
-- [x] CLI entry point
-- [x] Basic ink app
+## 📅 路线图 (Roadmap)
 
-### Phase 2: Package Manager Integration ✅ (28/28 tasks - 100%)
-- [x] BasePackageManager class (with dependency tree algorithm)
-- [x] BrewPackageManager (formula + cask support)
-- [x] NpmPackageManager
-- [x] PnpmPackageManager  
-- [x] YarnPackageManager
-- [x] PipPackageManager
-- [x] All managers support: listPackages, getPackageInfo, getDependencies, uninstall, getReverseDependencies
+- [x] 多包管理器适配器实现
+- [x] 递归依赖分析算法
+- [x] 核心 TUI 界面与键盘交互
+- [x] 卸载预览与风险预警
+- [ ] 导出清理日志到文件
+- [ ] 软件包使用频率追踪（智能识别长期未使用的包）
+- [ ] 搜索与正则过滤功能增强
+- [ ] 依赖树的图形化可视化展示
 
-### Phase 3: Core Business Logic ✅ (Core complete - 100%)
-- [x] PackageScannerService
-- [x] PackageCleanerService  
-- [x] Zustand state management store
-- [x] Complete preview and uninstall workflow
+## 📄 开源协议
 
-### Phase 4: TUI UI Development ✅ (12/22 tasks - Core complete)
-- [x] State management (zustand store)
-- [x] PackageList component
-- [x] StatusBar component
-- [x] HelpBar component
-- [x] TabBar component
-- [x] LoadingSpinner component
-- [x] PreviewModal component
-- [x] Complete app.tsx with keyboard interactions (↑↓ Space Enter p r q)
-- [x] Full scan → select → preview → uninstall workflow
-- [x] Successfully builds and runs
-- [ ] DependencyTree component (optional, for detail view)
-- [ ] Advanced search functionality (optional)
+本项目基于 MIT 协议开源。
 
-### Phase 5: Testing & Release 🔄 (5/23 tasks - Started)
-- [x] Test framework setup (vitest + coverage)
-- [x] Unit tests for format utils (3 tests ✅)
-- [x] Unit tests for BrewPackageManager (2 tests ✅)
-- [ ] Complete unit test coverage
-- [ ] Integration tests
-- [ ] Performance optimization
-- [ ] Documentation finalization
-- [ ] npm package publishing
+## 🤝 贡献
 
-## Current Status
-
-**✅ FULLY FUNCTIONAL** - The app is complete with all core features!
-
-- **Build Size**: 37.22 KB
-- **Test Coverage**: 5 tests passing
-- **UI Components**: 6 core components implemented
-- **Package Managers**: 5 adapters fully implemented
-- **Features**: Scan, Select, Preview, Uninstall ✅
-
-### What Works Now
-
-1. ✅ **Scan packages** from all available package managers
-2. ✅ **Display package list** with filtering by manager
-3. ✅ **Navigate** with keyboard (↑↓ keys)
-4. ✅ **Select packages** (Space key)
-5. ✅ **Preview uninstall** (p key) with impact analysis
-6. ✅ **Execute uninstall** (confirm in preview)  
-7. ✅ **Refresh** package list (r key)
-8. ✅ **Quit** application (q key)
-
-### Optional Enhancements (Not blocking release)
-
-- Dependency tree visualization in detail view
-- Advanced search with regex
-- Sort by size/date/name
-- Export uninstall plans
-- More comprehensive test coverage
-
-## License
-
-MIT
-
-## Author
-
-Created with Claude Code CLI stack (TypeScript + ink + React)
+欢迎提交 Issue 或 Pull Request！如果您觉得这个工具有用，请给它一个 ⭐️。

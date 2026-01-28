@@ -8,11 +8,10 @@ interface TabBarProps {
 }
 
 export const TabBar: React.FC<TabBarProps> = ({ activeTab, availableManagers }) => {
-    const tabs: Array<PackageManagerType | 'all'> = ['all', ...availableManagers];
-
+    // 移除 all 选项，只显示可用的包管理器
     return (
         <Box paddingX={1}>
-            {tabs.map((tab) => {
+            {availableManagers.map((tab) => {
                 const isActive = tab === activeTab;
                 return (
                     <Box key={tab} marginRight={1}>

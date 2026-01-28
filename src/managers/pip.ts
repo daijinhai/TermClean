@@ -16,7 +16,8 @@ export class PipPackageManager extends BasePackageManager {
         const packages: Package[] = [];
 
         try {
-            const args = ['list', '--format=json'];
+            // 使用 --not-required 只显示没有被其他包依赖的包（用户直接安装的顶层包）
+            const args = ['list', '--format=json', '--not-required'];
             if (!globalOnly) {
                 args.push('--user');
             }
@@ -97,17 +98,18 @@ export class PipPackageManager extends BasePackageManager {
             : path.join(os.homedir(), '.local/lib/python3.12/site-packages');
 
         const installPath = path.join(sitePackages, name);
-        const size = await getDirectorySize(installPath);
 
+        // 描述改为异步加载，启动时不获取（太慢）
         return {
             name,
             version,
             manager: 'pip',
             installPath,
-            size,
+            size: 0,
             dependenciesSize: 0,
             installedDate: new Date(),
             modifiedDate: new Date(),
+            description: '', // 后续异步加载
             isGlobal,
         };
     }

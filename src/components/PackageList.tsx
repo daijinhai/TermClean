@@ -3,12 +3,23 @@ import { Box, Text } from 'ink';
 import type { Package } from '../types/index.js';
 import { formatBytes, formatDate } from '../utils/format.js';
 
+const WINDOW_SIZE = 15; // 每屏显示的包数量
+
 interface PackageListProps {
     packages: Package[];
     selectedPackages: Set<string>;
     highlightedIndex: number;
-    onToggle: (packageName: string) => void;
 }
+
+const ColumnHeader = () => (
+    <Box borderStyle="single" borderTop={false} borderLeft={false} borderRight={false} borderBottom={true} borderColor="gray" paddingX={1} marginBottom={0}>
+        <Box width={4}><Text bold color="gray">   </Text></Box>
+        <Box width="35%"><Text bold color="gray">NAME</Text></Box>
+        <Box width="20%"><Text bold color="gray">VERSION</Text></Box>
+        <Box width="15%"><Text bold color="gray">SIZE</Text></Box>
+        <Box width="25%"><Text bold color="gray">INSTALLED</Text></Box>
+    </Box>
+);
 
 export const PackageList: React.FC<PackageListProps> = ({
     packages,
@@ -17,42 +28,76 @@ export const PackageList: React.FC<PackageListProps> = ({
 }) => {
     if (packages.length === 0) {
         return (
-            <Box padding={1}>
+            <Box padding={1} borderStyle="single" borderColor="gray">
                 <Text dimColor>No packages found</Text>
             </Box>
         );
     }
 
+    // 计算滚动窗口
+    let startIndex = 0;
+    if (highlightedIndex >= WINDOW_SIZE - 2) {
+        startIndex = Math.min(highlightedIndex - WINDOW_SIZE + 3, packages.length - WINDOW_SIZE);
+    }
+    startIndex = Math.max(0, startIndex);
+    const endIndex = Math.min(startIndex + WINDOW_SIZE, packages.length);
+    const visiblePackages = packages.slice(startIndex, endIndex);
+
     return (
-        <Box flexDirection="column">
-            {packages.slice(0, 10).map((pkg, index) => {
-                const isHighlighted = index === highlightedIndex;
+        <Box flexDirection="column" borderStyle="single" borderColor="gray" flexGrow={1}>
+            <ColumnHeader />
+
+            {visiblePackages.map((pkg, visibleIdx) => {
+                const actualIndex = startIndex + visibleIdx;
+                const isHighlighted = actualIndex === highlightedIndex;
                 const isSelected = selectedPackages.has(pkg.name);
 
+                const sizeStr = pkg.size > 0 ? formatBytes(pkg.size) : '—';
+
                 return (
-                    <Box key={pkg.name} paddingLeft={1}>
-                        <Text
-                            backgroundColor={isHighlighted ? 'blue' : undefined}
-                            color={isHighlighted ? 'white' : undefined}
-                        >
-                            {isHighlighted ? '● ' : '○ '}
-                            {pkg.name}@{pkg.version}
-                            {' '.repeat(Math.max(0, 30 - pkg.name.length - pkg.version.length))}
-                            {formatBytes(pkg.size)} │ {formatBytes(pkg.dependenciesSize)}
-                            {'  '}
-                            {formatDate(pkg.installedDate)}
-                            {'  '}
-                            {isSelected ? '[✓]' : '[ ]'}
-                        </Text>
+                    <Box key={pkg.name} paddingX={1} backgroundColor={isHighlighted ? 'cyan' : undefined}>
+                        {/* 状态列 */}
+                        <Box width={4}>
+                            <Text color={isHighlighted ? 'black' : (isSelected ? 'green' : 'gray')}>
+                                {isSelected ? '◉' : '○'}
+                            </Text>
+                        </Box>
+
+                        {/* 名称列 */}
+                        <Box width="35%">
+                            <Text color={isHighlighted ? 'black' : 'white'} bold={isSelected}>
+                                {pkg.name.length > 25 ? pkg.name.substring(0, 24) + '…' : pkg.name}
+                            </Text>
+                        </Box>
+
+                        {/* 版本列 */}
+                        <Box width="20%">
+                            <Text color={isHighlighted ? 'black' : 'gray'}>
+                                {pkg.version.length > 15 ? pkg.version.substring(0, 14) + '…' : pkg.version}
+                            </Text>
+                        </Box>
+
+                        {/* 大小列 */}
+                        <Box width="15%">
+                            <Text color={isHighlighted ? 'black' : 'yellow'}>{sizeStr}</Text>
+                        </Box>
+
+                        {/* 日期列 */}
+                        <Box width="25%">
+                            <Text color={isHighlighted ? 'black' : 'gray'}>{formatDate(pkg.installedDate)}</Text>
+                        </Box>
                     </Box>
                 );
             })}
 
-            {packages.length > 10 && (
-                <Box paddingLeft={1}>
-                    <Text dimColor>... (showing 10 of {packages.length})</Text>
-                </Box>
-            )}
+            {/* 滚动条指示器 (保留在表格底部) */}
+            <Box marginTop={0} paddingX={1} borderStyle="single" borderBottom={false} borderLeft={false} borderRight={false} borderTop={true} borderColor="gray">
+                <Text dimColor>
+                    Showing {startIndex + 1}-{endIndex} of {packages.length}
+                </Text>
+                <Box flexGrow={1} />
+                <Text dimColor>{Math.round((endIndex / packages.length) * 100)}%</Text>
+            </Box>
         </Box>
     );
 };
