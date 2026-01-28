@@ -1,113 +1,120 @@
 # term-clean
 
-`term-clean` 是一个专为 macOS 用户设计的终端 TUI（命令行图形界面）清理工具，旨在帮助您轻松管理、分析和清理各种包管理器（brew, npm, pnpm, yarn, pip）安装的软件包。
 
-## 🌟 核心特性
 
-- 📦 **多管理器支持**：一站式管理 Homebrew (Formulae & Casks), npm, pnpm, yarn 和 pip。
-- 🔍 **智能扫描与分析**：自动检测所有已安装的包，并分析其占用的磁盘空间。
-- 🌳 **依赖追溯**：内置递归依赖树构建算法，清晰展示包与包之间的引用关系。
-- ⚠️ **安全卸载预览**：在执行卸载前，系统会进行二次确认并显示受影响的依赖项，防止误删系统关键组件。
-- ⌨️ **纯键盘交互**：基于 Ink 和 React 构建，提供流畅的 TUI 操作体验。
-- � **实时统计**：实时计算选中包的总大小以及可释放的磁盘空间。
+`term-clean` is a terminal TUI (Text User Interface) cleanup tool designed specifically for macOS users. It helps you easily manage, analyze, and clean up packages installed by various package managers (brew, npm, pnpm, yarn, pip).
 
-## 🚀 快速开始
+![Main Interface](doc/main.png)
+## 🌟 Core Features
 
-### 安装
+- 📦 **Multi-Manager Support**: One-stop management for Homebrew (Formulae & Casks), npm, pnpm, yarn, and pip.
+- 🔍 **Smart Scanning & Analysis**: Automatically detects all installed packages and analyzes their disk usage.
+- 🌳 **Dependency Tracing**: Built-in recursive dependency tree algorithm clearly shows the reference relationships between packages.
+- ⚠️ **Safe Uninstall Preview**: Before executing uninstallation, the system provides a secondary confirmation and displays affected dependencies to prevent accidental deletion of critical system components.
+- ⌨️ **Keyboard-First Interaction**: Built with Ink and React, providing a smooth TUI automatic experience.
+- 📊 **Real-time Statistics**: Real-time calculation of the total size of selected packages and the disk space that can be freed.
 
-您可以直接通过 npm 全局安装：
+![Dashboard](doc/dashboard.png)
+
+## 🚀 Quick Start
+
+### Installation
+
+You can install it globally via npm:
 
 ```bash
 npm install -g term-clean
 ```
 
-*(注意：目前代码处于开发阶段，您可以克隆仓库后运行 `npm link` 进行测试)*
+*(Note: The code is currently in the development phase. You can clone the repository and run `npm link` for testing)*
 
-### 使用方法
+### Usage
 
-#### 交互模式 (TUI)
+#### Interactive Mode (TUI)
 
-直接运行命令即可进入交互式界面：
+Run the command directly to enter the interactive interface:
 
 ```bash
 term-clean
 ```
 
-进入界面后，您可以使用以下快捷键：
+Once in the interface, you can use the following shortcuts:
 
-- `↑/↓`：在包列表中上下移动。
-- `Tab`：在不同的包管理器标签页（brew, npm, pip 等）之间切换。
-- `空格键`：勾选/取消勾选要清理的包。
-- `p`：进入预览模式，查看选中包的详细信息及卸载影响分析。
-- `c`：在预览模式下按 `c` 确认并执行卸载。
-- `r`：刷新扫描结果。
-- `q` / `Esc`：退出应用或退出预览模式。
+- `↑/↓`: Move up and down in the package list.
+- `Tab`: Switch between different package manager tabs (brew, npm, pip, etc.).
+- `Space`: Check/uncheck packages to clean.
+- `p`: Enter preview mode to view detailed information about selected packages and uninstall impact analysis.
+- `c`: In preview mode, press `c` to confirm and execute uninstallation.
+- `r`: Refresh scanning results.
+- `q` / `Esc`: Exit the application or exit preview mode.
 
-#### 命令行模式 (CLI)
+![Scanning Dashboard](doc/dashboard2.png)
 
-您也可以使用传统的命令行参数：
+#### Command Line Mode (CLI)
+
+You can also use traditional command-line arguments:
 
 ```bash
-# 仅过滤特定的包管理器
+# Filter only specific package managers
 term-clean -m brew
 
-# 以调试模式启动（查看详细日志）
+# Start in debug mode (view detailed logs)
 term-clean --debug
 ```
 
-## 🛠️ 开发与测试
+## 🛠️ Development & Testing
 
-如果您希望参与开发或在本地运行项目：
+If you wish to participate in development or run the project locally:
 
-### 环境准备
+### Prerequisites
 
-- Node.js (建议 v18+)
+- Node.js (v18+ recommended)
 - npm / pnpm / yarn
 
-### 本地运行
+### Local Setup
 
-1. 克隆仓库
-2. 安装依赖：`npm install`
-3. 以开发模式运行：`npm run dev`
-4. 构建项目：`npm run build`
-5. 运行构建后的程序：`node dist/cli.js`
+1. Clone the repository
+2. Install dependencies: `npm install`
+3. Run in development mode: `npm run dev`
+4. Build the project: `npm run build`
+5. Run the built program: `node dist/cli.js`
 
-### 测试
+### Testing
 
-项目使用 `vitest` 进行单元测试：
+The project uses `vitest` for unit testing:
 
 ```bash
-# 运行所有测试
+# Run all tests
 npm test
 
-# 运行单元测试
+# Run unit tests
 npm run test:unit
 ```
 
-## 🏗️ 架构设计
+## 🏗️ Architecture
 
-项目采用分层架构，保证了良好的可扩展性和可维护性：
+The project adopts a layered architecture, ensuring good extensibility and maintainability:
 
-- **Managers (适配器层)**：统一了不同包管理器的查询和卸载接口（如 `BrewPackageManager`, `NpmPackageManager` 等）。
-- **Services (业务逻辑层)**：处理包扫描 (`PackageScannerService`) 和清理流程 (`PackageCleanerService`)。
-- **Stores (状态管理)**：使用 `zustand` 管理全局响应式状态（如选中的包、列表数据等）。
-- **Components (UI层)**：基于 `ink` 构建的 React 组件库，负责 TUI 界面的渲染。
+- **Managers (Adapter Layer)**: Unifies query and uninstall interfaces for different package managers (e.g., `BrewPackageManager`, `NpmPackageManager`).
+- **Services (Business Logic Layer)**: Handles package scanning (`PackageScannerService`) and cleaning processes (`PackageCleanerService`).
+- **Stores (State Management)**: Uses `zustand` to manage global reactive state (e.g., selected packages, list data).
+- **Components (UI Layer)**: A React component library built on `ink`, responsible for TUI rendering.
 
-## 📅 路线图 (Roadmap)
+## 📅 Roadmap
 
-- [x] 多包管理器适配器实现
-- [x] 递归依赖分析算法
-- [x] 核心 TUI 界面与键盘交互
-- [x] 卸载预览与风险预警
-- [ ] 导出清理日志到文件
-- [ ] 软件包使用频率追踪（智能识别长期未使用的包）
-- [ ] 搜索与正则过滤功能增强
-- [ ] 依赖树的图形化可视化展示
+- [x] Multi-package manager adapter implementation
+- [x] Recursive dependency analysis algorithm
+- [x] Core TUI interface and keyboard interaction
+- [x] Uninstall preview and risk warning
+- [ ] Export cleanup logs to file
+- [ ] Package usage frequency tracking (smart identification of long-unused packages)
+- [ ] Enhanced search and regex filtering
+- [ ] Graphical visualization of dependency trees
 
-## 📄 开源协议
+## 📄 License
 
-本项目基于 MIT 协议开源。
+This project is open-sourced under the MIT License.
 
-## 🤝 贡献
+## 🤝 Contribution
 
-欢迎提交 Issue 或 Pull Request！如果您觉得这个工具有用，请给它一个 ⭐️。
+Issues and Pull Requests are welcome! If you find this tool useful, please give it a ⭐️.
