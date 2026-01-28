@@ -1,0 +1,60 @@
+{
+  "name": "term-clean",
+  "version": "1.0.0",
+  "description": "A TUI tool for managing and cleaning command-line packages on Mac",
+  "main": "dist/cli.js",
+  "type": "module",
+  "bin": {
+    "term-clean": "./dist/cli.js"
+  },
+  "directories": {
+    "doc": "doc"
+  },
+  "scripts": {
+    "dev": "tsup --watch",
+    "build": "tsup",
+    "type-check": "tsc --noEmit",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "test": "vitest",
+    "test:unit": "vitest --run tests/unit",
+    "test:integration": "vitest --run tests/integration",
+    "test:coverage": "vitest --coverage",
+    "test:watch": "vitest --watch",
+    "clean": "rm -rf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "keywords": [
+    "cli",
+    "tui",
+    "package-manager",
+    "homebrew",
+    "npm",
+    "pip",
+    "clean",
+    "mac",
+    "terminal"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "commander": "^14.0.2",
+    "execa": "^9.6.1",
+    "fs-extra": "^11.3.3",
+    "ink": "^6.6.0",
+    "react": "^19.2.4",
+    "zustand": "^5.0.10"
+  },
+  "devDependencies": {
+    "@types/node": "^25.0.10",
+    "@types/react": "^19.2.10",
+    "@typescript-eslint/eslint-plugin": "^8.54.0",
+    "@typescript-eslint/parser": "^8.54.0",
+    "eslint": "^9.39.2",
+    "prettier": "^3.8.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

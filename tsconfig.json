@@ -1,0 +1,56 @@
+{
+    "compilerOptions": {
+        // 语言和环境
+        "target": "ES2022",
+        "lib": [
+            "ES2022"
+        ],
+        "jsx": "react",
+        "module": "ESNext",
+        "moduleResolution": "bundler",
+        // 严格模式
+        "strict": true,
+        "noImplicitAny": true,
+        "strictNullChecks": true,
+        "strictFunctionTypes": true,
+        "strictBindCallApply": true,
+        "strictPropertyInitialization": true,
+        "noImplicitThis": true,
+        "alwaysStrict": true,
+        // 额外检查
+        "noUnusedLocals": true,
+        "noUnusedParameters": true,
+        "noImplicitReturns": true,
+        "noFallthroughCasesInSwitch": true,
+        "noUncheckedIndexedAccess": true,
+        // 模块解析
+        "esModuleInterop": true,
+        "allowSyntheticDefaultImports": true,
+        "resolveJsonModule": true,
+        "isolatedModules": true,
+        // 输出
+        "declaration": true,
+        "declarationMap": true,
+        "sourceMap": true,
+        "outDir": "./dist",
+        "rootDir": "./src",
+        // 其他
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        // 路径别名
+        "baseUrl": ".",
+        "paths": {
+            "@/*": [
+                "src/*"
+            ]
+        }
+    },
+    "include": [
+        "src/**/*"
+    ],
+    "exclude": [
+        "node_modules",
+        "dist",
+        "tests"
+    ]
+}
