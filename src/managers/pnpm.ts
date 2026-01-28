@@ -1,4 +1,5 @@
 import { NpmPackageManager } from './npm.js';
+import type { Package } from '../types/index.js';
 
 /**
  * pnpm包管理器适配器
@@ -7,6 +8,59 @@ import { NpmPackageManager } from './npm.js';
 export class PnpmPackageManager extends NpmPackageManager {
     readonly name = 'pnpm';
     protected readonly commandName = 'pnpm';
+
+    async listPackages(globalOnly: boolean = true): Promise<Package[]> {
+        const packages: Package[] = [];
+
+        try {
+            // pnpm list -g --json --depth=0 返回的是数组
+            const args = globalOnly ? ['list', '-g', '--json', '--depth=0'] : ['list', '--json', '--depth=0'];
+            const output = await this.execute(args);
+            const data = JSON.parse(output);
+
+            // 兼容数组格式
+            const items = Array.isArray(data) ? data : [data];
+
+            for (const item of items) {
+                if (item.dependencies) {
+                    for (const [name, info] of Object.entries(item.dependencies as Record<string, any>)) {
+                        const pkg = await this.buildPackageFromInfo(name, info, globalOnly);
+                        if (pkg) {
+                            packages.push(pkg);
+                        }
+                    }
+                }
+            }
+        } catch (error) {
+            console.error('Failed to list pnpm packages:', error);
+        }
+
+        return packages;
+    }
+
+    // 覆盖 buildPackageFromInfo 以确保 manager 字段正确
+    protected async buildPackageFromInfo(
+        name: string,
+        info: any,
+        isGlobal: boolean
+    ): Promise<Package | null> {
+        // 调用父类方法获取基础结构，然后修改 manager
+        const installPath = await this.getPackagePath(name, isGlobal);
+
+        return {
+            name,
+            version: info.version || 'unknown',
+            manager: 'pnpm',
+            installPath,
+            size: 0,
+            dependenciesSize: 0,
+            installedDate: new Date(),
+            modifiedDate: new Date(),
+            description: '',
+            isDev: false,
+            isGlobal,
+        };
+    }
 
     async uninstall(packageName: string): Promise<void> {
         try {
