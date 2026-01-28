@@ -3,6 +3,7 @@ import type { Package, Dependency, DependencyType } from '../types/index.js';
 import { parseLines } from '../utils/command.js';
 import { getDirectorySize } from '../utils/path.js';
 import path from 'path';
+import fs from 'fs/promises';
 import os from 'os';
 
 /**
@@ -16,8 +17,9 @@ export class PipPackageManager extends BasePackageManager {
         const packages: Package[] = [];
 
         try {
-            // 使用 --not-required 只显示没有被其他包依赖的包（用户直接安装的顶层包）
-            const args = ['list', '--format=json', '--not-required'];
+            // 使用 --not-required 只显示没有被其他包依赖的包
+            // 使用 -v 获取 Location 字段
+            const args = ['list', '--format=json', '--not-required', '-v'];
             if (!globalOnly) {
                 args.push('--user');
             }
@@ -26,7 +28,8 @@ export class PipPackageManager extends BasePackageManager {
             const data = JSON.parse(output);
 
             for (const item of data) {
-                const pkg = await this.buildPackageInfo(item.name, item.version, globalOnly);
+                // item 包含 { name, version, location, installer }
+                const pkg = await this.buildPackageInfo(item.name, item.version, item.location, globalOnly);
                 if (pkg) {
                     packages.push(pkg);
                 }
@@ -92,12 +95,29 @@ export class PipPackageManager extends BasePackageManager {
         return [];
     }
 
-    private async buildPackageInfo(name: string, version: string, isGlobal: boolean): Promise<Package | null> {
-        const sitePackages = isGlobal
-            ? '/usr/local/lib/python3.12/site-packages'
-            : path.join(os.homedir(), '.local/lib/python3.12/site-packages');
+    private async buildPackageInfo(name: string, version: string, location: string, isGlobal: boolean): Promise<Package | null> {
+        // 使用实际返回的 location，而不是硬编码的 sitePackages
+        let installPath: string;
+        if (location) {
+            installPath = path.join(location, name);
+        } else {
+            // Fallback logic if location is missing (unlikely with -v)
+            const sitePackages = isGlobal
+                ? '/usr/local/lib/python3.12/site-packages'
+                : path.join(os.homedir(), '.local/lib/python3.12/site-packages');
+            installPath = path.join(sitePackages, name);
+        }
 
-        const installPath = path.join(sitePackages, name);
+        // 获取真实文件时间
+        let installedDate = new Date();
+        let modifiedDate = new Date();
+        try {
+            const stats = await fs.stat(installPath);
+            installedDate = stats.birthtime;
+            modifiedDate = stats.mtime;
+        } catch (e) {
+            // ignore
+        }
 
         // 描述改为异步加载，启动时不获取（太慢）
         return {
@@ -107,8 +127,8 @@ export class PipPackageManager extends BasePackageManager {
             installPath,
             size: 0,
             dependenciesSize: 0,
-            installedDate: new Date(),
-            modifiedDate: new Date(),
+            installedDate,
+            modifiedDate,
             description: '', // 后续异步加载
             isGlobal,
         };

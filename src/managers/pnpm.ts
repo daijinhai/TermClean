@@ -1,5 +1,6 @@
 import { NpmPackageManager } from './npm.js';
 import type { Package } from '../types/index.js';
+import fs from 'fs/promises';
 
 /**
  * pnpm包管理器适配器
@@ -47,6 +48,17 @@ export class PnpmPackageManager extends NpmPackageManager {
         // 调用父类方法获取基础结构，然后修改 manager
         const installPath = await this.getPackagePath(name, isGlobal);
 
+        // 获取真实文件时间
+        let installedDate = new Date();
+        let modifiedDate = new Date();
+        try {
+            const stats = await fs.stat(installPath);
+            installedDate = stats.birthtime;
+            modifiedDate = stats.mtime;
+        } catch (e) {
+            // ignore
+        }
+
         return {
             name,
             version: info.version || 'unknown',
@@ -54,8 +66,8 @@ export class PnpmPackageManager extends NpmPackageManager {
             installPath,
             size: 0,
             dependenciesSize: 0,
-            installedDate: new Date(),
-            modifiedDate: new Date(),
+            installedDate,
+            modifiedDate,
             description: '',
             isDev: false,
             isGlobal,
