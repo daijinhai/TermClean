@@ -109,7 +109,7 @@ export const PackageList: React.FC<PackageListProps> = ({
                                 {pkg.name.length > (isWatched || pkg.updateAvailable ? 20 : 25)
                                     ? pkg.name.substring(0, (isWatched || pkg.updateAvailable ? 19 : 24)) + '…'
                                     : pkg.name}
-                                {isWatched && ' 👁️'}
+                                {isWatched && ' ⭐'}
                                 {pkg.updateAvailable && ' 🆙'}
                             </Text>
                         </Box>

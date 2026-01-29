@@ -242,7 +242,7 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode: _debugMode }
             if (pkg) {
                 configService.togglePackageWatch(pkg.name);
                 const isWatched = configService.isPackageWatched(pkg.name);
-                store.setError(`${isWatched ? '👁️ Watching' : '🚫 Unwatched'} ${pkg.name} for updates`);
+                store.setError(`${isWatched ? '⭐ Watching' : '🚫 Unwatched'} ${pkg.name} for updates`);
             }
         } else if (input === 'W') {
             // 批量监控选中的包（大写W）
@@ -256,7 +256,7 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode: _debugMode }
                         configService.togglePackageWatch(pkg.name);
                     }
                 });
-                store.setError(`👁️ Watching ${selectedPkgs.length} package(s) for updates`);
+                store.setError(`⭐ Watching ${selectedPkgs.length} package(s) for updates`);
             }
         } else if (input === 'u' || input === 'U') {
             // 快速卸载确认

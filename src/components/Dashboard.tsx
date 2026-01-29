@@ -101,7 +101,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuse
                         </Box>
                         <Box marginRight={4} flexDirection="column" alignItems="center">
                             <Text color="gray">WATCHING</Text>
-                            <Text bold color="cyan">{watchingCount} 👁️</Text>
+                            <Text bold color="cyan">{watchingCount} ⭐</Text>
                         </Box>
                         <Box flexDirection="column" alignItems="center">
                             <Text color="gray">UPDATES</Text>
