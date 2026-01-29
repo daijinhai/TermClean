@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import { useAppStore } from './stores/app-store.js';
 import { PackageScannerService, PackageCleanerService } from './services/index.js';
+import { versionCheckService } from './services/version-check.js';
 import {
     PackageList,
     StatusBar,
@@ -103,6 +104,11 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
 
                 // 异步计算包大小
                 calculatePackageSizes(allPackages);
+
+                // 启动版本检查（后台运行）
+                versionCheckService.checkAll(allPackages, (pkg, result) => {
+                    store.updatePackageVersion(pkg.name, result.latestVersion, result.updateAvailable);
+                });
             } catch (error) {
                 store.setError(error instanceof Error ? error.message : 'Unknown error');
             } finally {
@@ -223,6 +229,17 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         } else if (input === 'p' || input === 'P') {
             // 预览卸载 (详细预览)
             handlePreview();
+        } else if (input === 'g' || input === 'G') {
+            // 升级选中的包
+            handleUpgrade();
+        } else if (input === 'w' || input === 'W') {
+            // 切换监控状态（Watch）
+            const pkg = filteredPackages[highlightedIndex];
+            if (pkg) {
+                configService.togglePackageWatch(pkg.name);
+                const isWatched = configService.isPackageWatched(pkg.name);
+                store.setError(`${isWatched ? '👁️ Watching' : '🚫 Unwatched'} ${pkg.name} for updates`);
+            }
         } else if (input === 'u' || input === 'U') {
             // 快速卸载确认
             const selectedPkgs = store.packages.filter((pkg) => store.selectedPackages.has(pkg.name));
@@ -251,9 +268,17 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         // Toggle sort order
         if (input === 's' && !searchMode && !preview) {
             // Cycle: name -> size -> date -> name
-            if (store.sortBy === 'name') store.toggleSort('size');
-            else if (store.sortBy === 'size') store.toggleSort('date');
-            else store.toggleSort('name');
+            if (store.sortBy === 'name') store.toggleSort('size', 'desc');
+            else if (store.sortBy === 'size') store.toggleSort('date', 'desc');
+            else store.toggleSort('name', 'asc');
+        }
+
+        // Toggle update check for selected package
+        if (input === 'v' && !searchMode && !preview) {
+            const pkg = filteredPackages[highlightedIndex];
+            if (pkg) {
+                store.toggleUpdateCheck(pkg.name);
+            }
         }
 
         if (input === 'a' || input === 'A') {
@@ -398,6 +423,62 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
             store.setError('Refreshed successfully');
         } catch (error) {
             store.setError(error instanceof Error ? error.message : 'Refresh failed');
+        } finally {
+            store.setIsLoading(false);
+        }
+    };
+
+    const handleUpgrade = async () => {
+        const selectedPkgs = store.packages.filter((pkg) => store.selectedPackages.has(pkg.name));
+
+        if (selectedPkgs.length === 0) {
+            store.setError('⚠️ No packages selected. Use [Space] to select first.');
+            return;
+        }
+
+        const upgradeablePkgs = selectedPkgs.filter(pkg => pkg.updateAvailable);
+        if (upgradeablePkgs.length === 0) {
+            store.setError('📦 No updates available for selected packages');
+            return;
+        }
+
+        store.setIsLoading(true);
+
+        try {
+            const results = [];
+            for (const pkg of upgradeablePkgs) {
+                const startTime = Date.now();
+                try {
+                    const manager = scanner.getManager(pkg.manager);
+                    await manager.upgrade(pkg.name);
+                    results.push({ success: true, package: pkg, duration: Date.now() - startTime });
+                } catch (error) {
+                    results.push({
+                        success: false,
+                        package: pkg,
+                        error: error instanceof Error ? error.message : 'Unknown error',
+                        duration: Date.now() - startTime
+                    });
+                }
+            }
+
+            // 刷新包列表以获取新版本
+            const packages = await scanner.scanAll();
+            store.setPackages(packages);
+            store.clearSelection();
+
+            // 重新运行版本检查（等待完成后再显示结果）
+            await versionCheckService.checkAll(packages, (pkg, result) => {
+                store.updatePackageVersion(pkg.name, result.latestVersion, result.updateAvailable);
+            });
+
+            // 显示结果
+            const successCount = results.filter((r) => r.success).length;
+            store.setError(
+                `✅ Upgraded ${successCount}/${results.length} packages successfully!`
+            );
+        } catch (error) {
+            store.setError(error instanceof Error ? error.message : 'Upgrade failed');
         } finally {
             store.setIsLoading(false);
         }

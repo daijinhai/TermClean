@@ -140,6 +140,16 @@ export abstract class BasePackageManager implements IPackageManager {
     abstract uninstall(packageName: string): Promise<void>;
 
     /**
+     * 升级包到最新版本或指定版本
+     */
+    abstract upgrade(packageName: string, version?: string): Promise<void>;
+
+    /**
+     * 获取包的最新版本
+     */
+    abstract getLatestVersion(packageName: string): Promise<string | null>;
+
+    /**
      * 获取反向依赖
      */
     abstract getReverseDependencies(packageName: string): Promise<string[]>;

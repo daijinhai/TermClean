@@ -24,10 +24,23 @@ export const PackageDetails: React.FC<PackageDetailsProps> = ({ pkg }) => {
                 </Text>
             </Box>
 
-            <Box marginBottom={1}>
-                <Text color="green">v{pkg.version}</Text>
-                {pkg.isGlobal && <Text dimColor> (Global)</Text>}
-                {pkg.isDev && <Text dimColor> (Dev)</Text>}
+            <Box marginBottom={1} flexDirection="column">
+                <Box>
+                    <Text color="green">v{pkg.version}</Text>
+                    {pkg.isGlobal && <Text dimColor> (Global)</Text>}
+                    {pkg.isDev && <Text dimColor> (Dev)</Text>}
+                </Box>
+                {pkg.updateAvailable && pkg.latestVersion && (
+                    <Box marginTop={0}>
+                        <Text color="yellow">⬆️  Latest: </Text>
+                        <Text bold color="green">v{pkg.latestVersion}</Text>
+                    </Box>
+                )}
+                {pkg.latestVersion && !pkg.updateAvailable && (
+                    <Box marginTop={0}>
+                        <Text dimColor>✓ Up to date</Text>
+                    </Box>
+                )}
             </Box>
 
             <Box marginBottom={1}>

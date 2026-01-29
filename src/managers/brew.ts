@@ -261,6 +261,51 @@ export class BrewPackageManager extends BasePackageManager {
     }
 
     /**
+     * 升级包到最新版本或指定版本
+     */
+    async upgrade(packageName: string, version?: string): Promise<void> {
+        try {
+            if (version) {
+                // Homebrew 不直接支持升级到指定版本
+                // 需要先卸载当前版本，然后安装指定版本
+                await this.execute(['unlink', packageName]);
+                await this.execute(['install', `${packageName}@${version}`]);
+                await this.execute(['link', `${packageName}@${version}`, '--force']);
+            } else {
+                // 升级到最新版本
+                await this.execute(['upgrade', packageName]);
+            }
+        } catch (error) {
+            throw new Error(`Failed to upgrade ${packageName}: ${error}`);
+        }
+    }
+
+    /**
+     * 获取包的最新版本
+     */
+    async getLatestVersion(packageName: string): Promise<string | null> {
+        try {
+            const output = await this.execute(['info', '--json=v2', packageName]);
+            const data = JSON.parse(output);
+
+            // 尝试从formulae获取
+            if (data.formulae && data.formulae.length > 0) {
+                return data.formulae[0].versions?.stable || null;
+            }
+
+            // 尝试从casks获取
+            if (data.casks && data.casks.length > 0) {
+                return data.casks[0].version || null;
+            }
+
+            return null;
+        } catch (error) {
+            console.error(`Failed to get latest version for ${packageName}:`, error);
+            return null;
+        }
+    }
+
+    /**
      * 获取反向依赖
      */
     async getReverseDependencies(packageName: string): Promise<string[]> {

@@ -12,6 +12,7 @@ interface PackageListProps {
 }
 
 import { useAppStore } from '../stores/app-store.js';
+import { configService } from '../services/config.js';
 
 const ColumnHeader = () => {
     const { sortBy, sortOrder } = useAppStore();
@@ -68,29 +69,47 @@ export const PackageList: React.FC<PackageListProps> = ({
                 const actualIndex = startIndex + visibleIdx;
                 const isHighlighted = actualIndex === highlightedIndex;
                 const isSelected = selectedPackages.has(pkg.name);
+                const isIgnored = configService.isPackageIgnored(pkg.name);
+                const isWatched = configService.isPackageWatched(pkg.name);
 
                 const sizeStr = pkg.size > 0 ? formatBytes(pkg.size) : '—';
+
+                // 构建版本显示
+                let versionText = pkg.version;
+                if (pkg.updateAvailable && pkg.latestVersion) {
+                    versionText = `${pkg.version} → ${pkg.latestVersion}`;
+                }
+
+                // 状态图标（只显示选择状态）
+                let statusIcon = isSelected ? '◉' : '○';
+                if (isIgnored) {
+                    statusIcon = '🚫';
+                }
 
                 return (
                     <Box key={pkg.name} paddingX={1} backgroundColor={isHighlighted ? 'cyan' : undefined}>
                         {/* 状态列 */}
                         <Box width={4}>
                             <Text color={isHighlighted ? 'black' : (isSelected ? 'green' : 'gray')}>
-                                {isSelected ? '◉' : '○'}
+                                {statusIcon}
                             </Text>
                         </Box>
 
-                        {/* 名称列 */}
+                        {/* 名称列 - 添加监控和更新徽章 */}
                         <Box width="35%">
                             <Text color={isHighlighted ? 'black' : 'white'} bold={isSelected}>
-                                {pkg.name.length > 25 ? pkg.name.substring(0, 24) + '…' : pkg.name}
+                                {pkg.name.length > (isWatched || pkg.updateAvailable ? 20 : 25)
+                                    ? pkg.name.substring(0, (isWatched || pkg.updateAvailable ? 19 : 24)) + '…'
+                                    : pkg.name}
+                                {isWatched && ' 👁️'}
+                                {pkg.updateAvailable && ' 🆙'}
                             </Text>
                         </Box>
 
                         {/* 版本列 */}
                         <Box width="20%">
-                            <Text color={isHighlighted ? 'black' : 'gray'}>
-                                {pkg.version.length > 15 ? pkg.version.substring(0, 14) + '…' : pkg.version}
+                            <Text color={pkg.updateAvailable ? 'green' : (isHighlighted ? 'black' : 'gray')}>
+                                {versionText.length > 15 && !isHighlighted ? versionText.substring(0, 14) + '…' : versionText}
                             </Text>
                         </Box>
 

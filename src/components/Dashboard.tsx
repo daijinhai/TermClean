@@ -38,6 +38,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuse
     }, [isLoading]);
 
     const totalSize = packages.reduce((sum, pkg) => sum + pkg.size, 0);
+    const updatesCount = packages.filter(p => p.updateAvailable).length;
     const byManager = packages.reduce((acc, pkg) => {
         acc[pkg.manager] = (acc[pkg.manager] || 0) + 1;
         return acc;
@@ -86,6 +87,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuse
                         <Box flexDirection="column" alignItems="center">
                             <Text color="gray">PACKAGES</Text>
                             <Text bold color="white">{packages.length}</Text>
+                        </Box>
+                        <Box marginLeft={4} flexDirection="column" alignItems="center">
+                            <Text color="gray">UPDATES</Text>
+                            <Text bold color={updatesCount > 0 ? 'green' : 'white'}>{updatesCount}</Text>
                         </Box>
                     </Box>
 

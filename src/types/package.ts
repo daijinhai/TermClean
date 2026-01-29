@@ -36,6 +36,12 @@ export interface Package {
     isDev?: boolean;
     /** 是否是全局安装 */
     isGlobal?: boolean;
+    /** 最新版本 */
+    latestVersion?: string;
+    /** 是否有更新 */
+    updateAvailable?: boolean;
+    /** 是否正在检查更新 */
+    isChecking?: boolean;
 }
 
 /**
@@ -140,4 +146,65 @@ export interface UninstallLog {
     totalDuration: number;
     /** 成功率 */
     successRate: number;
+}
+
+/**
+ * 升级预览信息
+ */
+export interface UpgradePreview {
+    /** 要升级的包 */
+    package: Package;
+    /** 当前版本 */
+    currentVersion: string;
+    /** 目标版本 */
+    targetVersion: string;
+    /** 变更类型 */
+    changeType: 'major' | 'minor' | 'patch' | 'unknown';
+    /** 预估下载大小(字节) */
+    estimatedSize?: number;
+    /** 潜在风险 */
+    risks: Array<{
+        level: 'low' | 'medium' | 'high';
+        message: string;
+    }>;
+    /** 变更日志URL */
+    changelogUrl?: string;
+}
+
+/**
+ * 升级结果
+ */
+export interface UpgradeResult {
+    /** 是否成功 */
+    success: boolean;
+    /** 升级的包 */
+    package: Package;
+    /** 原版本 */
+    fromVersion: string;
+    /** 新版本 */
+    toVersion: string;
+    /** 错误信息 */
+    error?: string;
+    /** 耗时(毫秒) */
+    duration: number;
+    /** 下载大小(字节) */
+    downloadedSize?: number;
+}
+
+/**
+ * 批量升级结果
+ */
+export interface BatchUpgradeResult {
+    /** 时间戳 */
+    timestamp: Date;
+    /** 升级的包列表 */
+    packages: Package[];
+    /** 升级结果 */
+    results: UpgradeResult[];
+    /** 总耗时 */
+    totalDuration: number;
+    /** 成功率 */
+    successRate: number;
+    /** 总下载大小 */
+    totalDownloadedSize: number;
 }

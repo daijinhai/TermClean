@@ -88,12 +88,37 @@ export class NpmPackageManager extends BasePackageManager {
         }
     }
 
+    /**
+     * 升级包到最新版本或指定版本
+     */
+    async upgrade(packageName: string, version?: string): Promise<void> {
+        try {
+            const targetVersion = version ? `${packageName}@${version}` : `${packageName}@latest`;
+            await this.execute(['install', '-g', targetVersion]);
+        } catch (error) {
+            throw new Error(`Failed to upgrade ${packageName}: ${error}`);
+        }
+    }
+
+    /**
+     * 获取包的最新版本
+     */
+    async getLatestVersion(packageName: string): Promise<string | null> {
+        try {
+            const output = await this.execute(['view', packageName, 'version']);
+            return output.trim() || null;
+        } catch (error) {
+            console.error(`Failed to get latest version for ${packageName}:`, error);
+            return null;
+        }
+    }
+
     async getReverseDependencies(packageName: string): Promise<string[]> {
         // npm doesn't provide easy reverse dependency lookup
         return [];
     }
 
-    private async buildPackageFromInfo(
+    protected async buildPackageFromInfo(
         name: string,
         info: any,
         isGlobal: boolean
@@ -127,7 +152,7 @@ export class NpmPackageManager extends BasePackageManager {
         };
     }
 
-    private async getPackagePath(packageName: string, isGlobal: boolean): Promise<string> {
+    protected async getPackagePath(packageName: string, isGlobal: boolean): Promise<string> {
         if (isGlobal) {
             try {
                 const output = await this.execute(['root', '-g']);

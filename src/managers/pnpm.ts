@@ -81,4 +81,34 @@ export class PnpmPackageManager extends NpmPackageManager {
             throw new Error(`Failed to uninstall ${packageName}: ${error}`);
         }
     }
+
+    /**
+     * 升级包到最新版本或指定版本
+     */
+    async upgrade(packageName: string, version?: string): Promise<void> {
+        try {
+            if (version) {
+                // PNPM 升级到指定版本
+                await this.execute(['add', '-g', `${packageName}@${version}`]);
+            } else {
+                // PNPM 升级到最新版本
+                await this.execute(['update', '-g', packageName]);
+            }
+        } catch (error) {
+            throw new Error(`Failed to upgrade ${packageName}: ${error}`);
+        }
+    }
+
+    /**
+     * 获取包的最新版本
+     */
+    async getLatestVersion(packageName: string): Promise<string | null> {
+        try {
+            const output = await this.execute(['view', packageName, 'version']);
+            return output.trim() || null;
+        } catch (error) {
+            console.error(`Failed to get latest version for ${packageName}:`, error);
+            return null;
+        }
+    }
 }

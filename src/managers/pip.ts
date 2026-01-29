@@ -91,6 +91,55 @@ export class PipPackageManager extends BasePackageManager {
         }
     }
 
+    /**
+     * 升级包到最新版本或指定版本
+     */
+    async upgrade(packageName: string, version?: string): Promise<void> {
+        try {
+            if (version) {
+                // 升级到指定版本
+                await this.execute(['install', '--upgrade', `${packageName}==${version}`]);
+            } else {
+                // 升级到最新版本
+                await this.execute(['install', '--upgrade', packageName]);
+            }
+        } catch (error) {
+            throw new Error(`Failed to upgrade ${packageName}: ${error}`);
+        }
+    }
+
+    /**
+     * 获取包的最新版本
+     */
+    async getLatestVersion(packageName: string): Promise<string | null> {
+        try {
+            // 使用 pip index versions 获取最新版本
+            const output = await this.execute(['index', 'versions', packageName]);
+            const lines = parseLines(output);
+
+            // 输出格式类似: "package-name (1.0.0)"
+            // Available versions: 1.0.0, 0.9.0, ...
+            for (const line of lines) {
+                if (line.includes('Available versions:')) {
+                    const versions = line.split(':')[1]?.trim().split(',').map(v => v.trim());
+                    if (versions && versions.length > 0) {
+                        return versions[0]; // 第一个是最新版本
+                    }
+                }
+            }
+
+            return null;
+        } catch (error) {
+            // 静默处理"包不存在"错误（某些包可能来自conda、GitHub等非PyPI源）
+            const errorMsg = error instanceof Error ? error.message : String(error);
+            if (!errorMsg.includes('No matching distribution found')) {
+                // 只报告非预期错误
+                console.error(`Failed to get latest version for ${packageName}:`, error);
+            }
+            return null;
+        }
+    }
+
     async getReverseDependencies(packageName: string): Promise<string[]> {
         return [];
     }

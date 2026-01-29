@@ -1,11 +1,13 @@
 import { create } from 'zustand';
 import type { Package, PackageManagerType } from '../types/index.js';
+import { configService } from '../services/config.js';
 
 interface AppState {
     // 包列表
     packages: Package[];
     setPackages: (packages: Package[]) => void;
     updatePackageSize: (packageName: string, size: number) => void;
+    updatePackageVersion: (packageName: string, latestVersion: string, updateAvailable: boolean) => void;
 
     // 选中的包
     selectedPackages: Set<string>;
@@ -38,6 +40,9 @@ interface AppState {
     // 错误信息
     error: string | null;
     setError: (error: string | null) => void;
+
+    // 版本更新检查
+    toggleUpdateCheck: (packageName: string) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -47,6 +52,14 @@ export const useAppStore = create<AppState>((set) => ({
         set((state) => ({
             packages: state.packages.map((pkg) =>
                 pkg.name === packageName ? { ...pkg, size } : pkg
+            ),
+        })),
+    updatePackageVersion: (packageName, latestVersion, updateAvailable) =>
+        set((state) => ({
+            packages: state.packages.map((pkg) =>
+                pkg.name === packageName
+                    ? { ...pkg, latestVersion, updateAvailable, isChecking: false }
+                    : pkg
             ),
         })),
 
@@ -92,4 +105,14 @@ export const useAppStore = create<AppState>((set) => ({
 
     error: null,
     setError: (error) => set({ error }),
+
+    toggleUpdateCheck: (packageName) => {
+        configService.togglePackageIgnore(packageName);
+        const isIgnored = configService.isPackageIgnored(packageName);
+        set({
+            error: isIgnored
+                ? `🔕 已禁用 ${packageName} 的更新检查`
+                : `🔔 已启用 ${packageName} 的更新检查`
+        });
+    },
 }));
