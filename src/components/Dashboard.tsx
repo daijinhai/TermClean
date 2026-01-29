@@ -2,7 +2,17 @@ import React, { useState, useEffect } from 'react';
 import { Box, Text, useInput } from 'ink';
 import { useAppStore } from '../stores/app-store.js';
 import { formatBytes } from '../utils/format.js';
-import type { ManagerStatus } from './ManagerStatus.js';
+import { configService } from '../services/config.js';
+
+/**
+ * 包管理器扫描状态
+ */
+export interface ManagerStatus {
+    name: string;
+    status: 'pending' | 'scanning' | 'completed' | 'failed';
+    count: number;
+    message: string;
+}
 
 const LOGO = `
   _______                  _____ _                 
@@ -21,9 +31,9 @@ interface DashboardProps {
 export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuses = [] }) => {
     const { packages, setCurrentView } = useAppStore();
     const [blink, setBlink] = useState(true);
-    const [progressChar, setProgressChar] = useState(0);
+    const [_progressChar, setProgressChar] = useState(0);
 
-    useInput((input, key) => {
+    useInput((_input, key) => {
         if (!isLoading && key.return) {
             setCurrentView('list');
         }
@@ -39,6 +49,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuse
 
     const totalSize = packages.reduce((sum, pkg) => sum + pkg.size, 0);
     const updatesCount = packages.filter(p => p.updateAvailable).length;
+    const watchingCount = configService.getWatchedPackages().length;
     const byManager = packages.reduce((acc, pkg) => {
         acc[pkg.manager] = (acc[pkg.manager] || 0) + 1;
         return acc;
@@ -84,13 +95,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ isLoading = false, statuse
                             <Text color="gray">TOTAL SIZE</Text>
                             <Text bold color="yellow" backgroundColor="black"> {totalSize > 0 ? formatBytes(totalSize) : 'Calculation Done'} </Text>
                         </Box>
-                        <Box flexDirection="column" alignItems="center">
+                        <Box marginRight={4} flexDirection="column" alignItems="center">
                             <Text color="gray">PACKAGES</Text>
                             <Text bold color="white">{packages.length}</Text>
                         </Box>
-                        <Box marginLeft={4} flexDirection="column" alignItems="center">
+                        <Box marginRight={4} flexDirection="column" alignItems="center">
+                            <Text color="gray">WATCHING</Text>
+                            <Text bold color="cyan">{watchingCount} 👁️</Text>
+                        </Box>
+                        <Box flexDirection="column" alignItems="center">
                             <Text color="gray">UPDATES</Text>
-                            <Text bold color={updatesCount > 0 ? 'green' : 'white'}>{updatesCount}</Text>
+                            <Text bold color={updatesCount > 0 ? 'green' : 'white'}>{updatesCount} {updatesCount > 0 ? '🆙' : ''}</Text>
                         </Box>
                     </Box>
 

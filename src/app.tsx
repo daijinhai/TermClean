@@ -3,6 +3,7 @@ import { Box, Text, useInput, useApp } from 'ink';
 import { useAppStore } from './stores/app-store.js';
 import { PackageScannerService, PackageCleanerService } from './services/index.js';
 import { versionCheckService } from './services/version-check.js';
+import { configService } from './services/config.js';
 import {
     PackageList,
     StatusBar,
@@ -21,7 +22,7 @@ interface AppProps {
     debugMode: boolean;
 }
 
-export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
+export const App: React.FC<AppProps> = ({ managerFilter, debugMode: _debugMode }) => {
     const { exit } = useApp();
     const store = useAppStore();
     const [scanner] = useState(() => new PackageScannerService());
@@ -54,7 +55,7 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
                 // 设置过滤器（默认第一个可用管理器）
                 if (managerFilter && managerFilter !== 'all') {
                     store.setManagerFilter(managerFilter as PackageManagerType);
-                } else if (managers.length > 0) {
+                } else if (managers.length > 0 && managers[0]) {
                     store.setManagerFilter(managers[0]);
                 }
 
@@ -102,10 +103,10 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
 
                 store.setPackages(allPackages);
 
-                // 异步计算包大小
+                // 异步计算包大小（静默）
                 calculatePackageSizes(allPackages);
 
-                // 启动版本检查（后台运行）
+                // 启动版本检查（后台静默运行）
                 versionCheckService.checkAll(allPackages, (pkg, result) => {
                     store.updatePackageVersion(pkg.name, result.latestVersion, result.updateAvailable);
                 });
@@ -120,7 +121,7 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         init();
     }, []);
 
-    // 异步计算包大小
+    // 异步计算包大小（静默后台运行）
     const calculatePackageSizes = async (packages: Package[]) => {
         const { getDirectorySize } = await import('./utils/path.js');
 
@@ -136,7 +137,7 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
                             store.updatePackageSize(pkg.name, size);
                         }
                     } catch {
-                        // 忽略单个包的大小计算错误
+                        // 静默忽略单个包的大小计算错误
                     }
                 })
             );
@@ -217,7 +218,10 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
                 nextIndex = (currentIndex + 1) % tabs.length;
             }
 
-            store.setManagerFilter(tabs[nextIndex]);
+            const nextTab = tabs[nextIndex];
+            if (nextTab) {
+                store.setManagerFilter(nextTab);
+            }
             setHighlightedIndex(0);
             // 切换 Tab 后重置选中位置
         } else if (input === ' ') {
@@ -232,13 +236,27 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         } else if (input === 'g' || input === 'G') {
             // 升级选中的包
             handleUpgrade();
-        } else if (input === 'w' || input === 'W') {
-            // 切换监控状态（Watch）
+        } else if (input === 'w') {
+            // 切换单个包的监控状态（小写w）
             const pkg = filteredPackages[highlightedIndex];
             if (pkg) {
                 configService.togglePackageWatch(pkg.name);
                 const isWatched = configService.isPackageWatched(pkg.name);
                 store.setError(`${isWatched ? '👁️ Watching' : '🚫 Unwatched'} ${pkg.name} for updates`);
+            }
+        } else if (input === 'W') {
+            // 批量监控选中的包（大写W）
+            const selectedPkgs = store.packages.filter((pkg) => store.selectedPackages.has(pkg.name));
+            if (selectedPkgs.length === 0) {
+                store.setError('⚠️ No packages selected. Use [Space] to select packages first.');
+            } else {
+                // 批量添加到监控列表
+                selectedPkgs.forEach(pkg => {
+                    if (!configService.isPackageWatched(pkg.name)) {
+                        configService.togglePackageWatch(pkg.name);
+                    }
+                });
+                store.setError(`👁️ Watching ${selectedPkgs.length} package(s) for updates`);
             }
         } else if (input === 'u' || input === 'U') {
             // 快速卸载确认
@@ -268,9 +286,9 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
         // Toggle sort order
         if (input === 's' && !searchMode && !preview) {
             // Cycle: name -> size -> date -> name
-            if (store.sortBy === 'name') store.toggleSort('size', 'desc');
-            else if (store.sortBy === 'size') store.toggleSort('date', 'desc');
-            else store.toggleSort('name', 'asc');
+            if (store.sortBy === 'name') store.toggleSort('size');
+            else if (store.sortBy === 'size') store.toggleSort('date');
+            else store.toggleSort('name');
         }
 
         // Toggle update check for selected package
@@ -450,7 +468,9 @@ export const App: React.FC<AppProps> = ({ managerFilter, debugMode }) => {
                 const startTime = Date.now();
                 try {
                     const manager = scanner.getManager(pkg.manager);
-                    await manager.upgrade(pkg.name);
+                    if (manager) {
+                        await manager.upgrade(pkg.name);
+                    }
                     results.push({ success: true, package: pkg, duration: Date.now() - startTime });
                 } catch (error) {
                     results.push({

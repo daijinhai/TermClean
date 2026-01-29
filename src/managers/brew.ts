@@ -1,5 +1,6 @@
 import { BasePackageManager } from './base.js';
-import type { Package, Dependency, PackageManagerType, DependencyType } from '../types/index.js';
+import type { Package, Dependency } from '../types/index.js';
+import { PackageManagerType, DependencyType } from '../types/index.js';
 import { parseLines } from '../utils/command.js';
 import { getDirectorySize, pathExists } from '../utils/path.js';
 import path from 'path';
@@ -71,7 +72,7 @@ export class BrewPackageManager extends BasePackageManager {
                 return {
                     name,
                     version,
-                    manager: 'brew' as PackageManagerType,
+                    manager: PackageManagerType.BREW,
                     installPath,
                     size: 0,
                     dependenciesSize: 0,
@@ -80,6 +81,7 @@ export class BrewPackageManager extends BasePackageManager {
                     description: desc,
                     isDev: false,
                     isGlobal: true,
+                    isChecking: true, // 标记为检查中，等待异步更新
                 };
             }));
             packages.push(...processedFormulae);
@@ -108,7 +110,7 @@ export class BrewPackageManager extends BasePackageManager {
                         packages.push(...allCasks.map(pkg => ({
                             name: pkg.token,
                             version: pkg.version || 'unknown',
-                            manager: 'brew-cask' as PackageManagerType,
+                            manager: PackageManagerType.BREW_CASK,
                             installPath: `/Applications/${pkg.name?.[0] || pkg.token}.app`,
                             size: 0,
                             dependenciesSize: 0,
@@ -117,6 +119,7 @@ export class BrewPackageManager extends BasePackageManager {
                             description: pkg.desc || '',
                             isDev: false,
                             isGlobal: true,
+                            isChecking: true, // 标记为检查中，等待异步更新
                         })));
                     }
                 } catch { }
@@ -177,7 +180,7 @@ export class BrewPackageManager extends BasePackageManager {
                 dependenciesSize += dep.size;
             }
 
-            const manager: PackageManagerType = isCask ? 'brew-cask' : 'brew';
+            const manager: PackageManagerType = isCask ? PackageManagerType.BREW_CASK : PackageManagerType.BREW;
 
             return {
                 name: packageName,
@@ -231,7 +234,7 @@ export class BrewPackageManager extends BasePackageManager {
                         dependencies.push({
                             name: depName,
                             version: depInfo.version,
-                            type: 'direct' as DependencyType,
+                            type: DependencyType.DIRECT,
                             isShared,
                             usedBy: reverseDeps,
                             size: depInfo.size,

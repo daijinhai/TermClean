@@ -1,4 +1,5 @@
-import type { Package, IPackageManager, PackageManagerType } from '../types/index.js';
+import type { Package, IPackageManager } from '../types/index.js';
+import { PackageManagerType } from '../types/index.js';
 import {
     BrewPackageManager,
     NpmPackageManager,
@@ -16,11 +17,11 @@ export class PackageScannerService {
 
     constructor() {
         this.managers = new Map();
-        this.managers.set('brew', new BrewPackageManager());
-        this.managers.set('npm', new NpmPackageManager());
-        this.managers.set('pnpm', new PnpmPackageManager());
-        this.managers.set('yarn', new YarnPackageManager());
-        this.managers.set('pip', new PipPackageManager());
+        this.managers.set(PackageManagerType.BREW, new BrewPackageManager());
+        this.managers.set(PackageManagerType.NPM, new NpmPackageManager());
+        this.managers.set(PackageManagerType.PNPM, new PnpmPackageManager());
+        this.managers.set(PackageManagerType.YARN, new YarnPackageManager());
+        this.managers.set(PackageManagerType.PIP, new PipPackageManager());
     }
 
     /**

@@ -9,7 +9,7 @@ interface PreviewModalProps {
     onCancel: () => void;
 }
 
-export const PreviewModal: React.FC<PreviewModalProps> = ({ preview, onConfirm, onCancel }) => {
+export const PreviewModal: React.FC<PreviewModalProps> = ({ preview, onConfirm: _onConfirm, onCancel: _onCancel }) => {
     return (
         <Box
             flexDirection="column"

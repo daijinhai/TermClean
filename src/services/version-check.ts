@@ -9,8 +9,6 @@ import { configService } from './config.js';
 
 export class VersionCheckService {
     private managers: Map<PackageManagerType, BasePackageManager>;
-    private checkQueue: Package[] = [];
-    private isProcessing = false;
     private readonly CONCURRENT_LIMIT = 5;
 
     constructor() {

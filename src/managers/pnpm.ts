@@ -1,5 +1,6 @@
 import { NpmPackageManager } from './npm.js';
 import type { Package } from '../types/index.js';
+import { PackageManagerType } from '../types/index.js';
 import fs from 'fs/promises';
 
 /**
@@ -7,8 +8,8 @@ import fs from 'fs/promises';
  * 继承自npm,因为API非常相似
  */
 export class PnpmPackageManager extends NpmPackageManager {
-    readonly name = 'pnpm';
-    protected readonly commandName = 'pnpm';
+    override readonly name = 'pnpm';
+    protected override readonly commandName = 'pnpm';
 
     async listPackages(globalOnly: boolean = true): Promise<Package[]> {
         const packages: Package[] = [];
@@ -62,7 +63,7 @@ export class PnpmPackageManager extends NpmPackageManager {
         return {
             name,
             version: info.version || 'unknown',
-            manager: 'pnpm',
+            manager: PackageManagerType.PNPM,
             installPath,
             size: 0,
             dependenciesSize: 0,
@@ -71,6 +72,7 @@ export class PnpmPackageManager extends NpmPackageManager {
             description: '',
             isDev: false,
             isGlobal,
+            isChecking: true, // 标记为检查中，等待异步更新
         };
     }
 

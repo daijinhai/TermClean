@@ -51,6 +51,19 @@ export interface IPackageManager {
     uninstall(packageName: string): Promise<void>;
 
     /**
+     * 升级包到最新版本或指定版本
+     * @param packageName - 包名
+     * @param version - 可选的目标版本
+     */
+    upgrade(packageName: string, version?: string): Promise<void>;
+
+    /**
+     * 获取包的最新版本
+     * @param packageName - 包名
+     */
+    getLatestVersion(packageName: string): Promise<string | null>;
+
+    /**
      * 获取反向依赖(哪些包依赖此包)
      * @param packageName - 包名
      */

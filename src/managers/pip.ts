@@ -1,5 +1,6 @@
 import { BasePackageManager } from './base.js';
-import type { Package, Dependency, DependencyType } from '../types/index.js';
+import type { Package, Dependency } from '../types/index.js';
+import { PackageManagerType } from '../types/index.js';
 import { parseLines } from '../utils/command.js';
 import { getDirectorySize } from '../utils/path.js';
 import path from 'path';
@@ -65,7 +66,7 @@ export class PipPackageManager extends BasePackageManager {
             return {
                 name: packageName,
                 version,
-                manager: 'pip',
+                manager: PackageManagerType.PIP,
                 installPath,
                 size,
                 dependenciesSize: 0,
@@ -78,7 +79,7 @@ export class PipPackageManager extends BasePackageManager {
         }
     }
 
-    async getDependencies(packageName: string): Promise<Dependency[]> {
+    async getDependencies(_packageName: string): Promise<Dependency[]> {
         // pip doesn't easily expose dependency info
         return [];
     }
@@ -123,7 +124,7 @@ export class PipPackageManager extends BasePackageManager {
                 if (line.includes('Available versions:')) {
                     const versions = line.split(':')[1]?.trim().split(',').map(v => v.trim());
                     if (versions && versions.length > 0) {
-                        return versions[0]; // 第一个是最新版本
+                        return versions[0] ?? null; // 第一个是最新版本
                     }
                 }
             }
@@ -140,7 +141,7 @@ export class PipPackageManager extends BasePackageManager {
         }
     }
 
-    async getReverseDependencies(packageName: string): Promise<string[]> {
+    async getReverseDependencies(_packageName: string): Promise<string[]> {
         return [];
     }
 
@@ -172,7 +173,7 @@ export class PipPackageManager extends BasePackageManager {
         return {
             name,
             version,
-            manager: 'pip',
+            manager: PackageManagerType.PIP,
             installPath,
             size: 0,
             dependenciesSize: 0,
@@ -180,6 +181,7 @@ export class PipPackageManager extends BasePackageManager {
             modifiedDate,
             description: '', // 后续异步加载
             isGlobal,
+            isChecking: true, // 标记为检查中，等待异步更新
         };
     }
 }

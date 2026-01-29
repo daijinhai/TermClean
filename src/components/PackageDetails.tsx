@@ -51,15 +51,15 @@ export const PackageDetails: React.FC<PackageDetailsProps> = ({ pkg }) => {
 
             <Box flexDirection="column">
                 <Box>
-                    <Text bold width={10}>Manager:</Text>
+                    <Box width={10}><Text bold>Manager:</Text></Box>
                     <Text>{pkg.manager}</Text>
                 </Box>
                 <Box>
-                    <Text bold width={10}>Size:</Text>
+                    <Box width={10}><Text bold>Size:</Text></Box>
                     <Text>{pkg.size > 0 ? formatBytes(pkg.size) : 'Calculated...'}</Text>
                 </Box>
                 <Box>
-                    <Text bold width={10}>Installed:</Text>
+                    <Box width={10}><Text bold>Installed:</Text></Box>
                     <Text>{formatDate(pkg.installedDate)}</Text>
                 </Box>
                 <Box marginTop={1}>

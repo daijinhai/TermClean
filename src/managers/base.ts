@@ -1,8 +1,8 @@
-import type {
-    IPackageManager,
-    Package,
-    Dependency,
-    DependencyTreeNode,
+import {
+    type IPackageManager,
+    type Package,
+    type Dependency,
+    type DependencyTreeNode,
     DependencyType,
 } from '../types/index.js';
 import { executeCommand, isCommandAvailable } from '../utils/command.js';

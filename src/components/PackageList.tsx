@@ -76,9 +76,13 @@ export const PackageList: React.FC<PackageListProps> = ({
 
                 // 构建版本显示
                 let versionText = pkg.version;
+                let versionColor: string = isHighlighted ? 'black' : (isWatched ? 'gray' : 'gray');
+
                 if (pkg.updateAvailable && pkg.latestVersion) {
                     versionText = `${pkg.version} → ${pkg.latestVersion}`;
+                    versionColor = 'green';
                 }
+                // 静默检查更新，不显示检查中状态
 
                 // 状态图标（只显示选择状态）
                 let statusIcon = isSelected ? '◉' : '○';
@@ -97,7 +101,11 @@ export const PackageList: React.FC<PackageListProps> = ({
 
                         {/* 名称列 - 添加监控和更新徽章 */}
                         <Box width="35%">
-                            <Text color={isHighlighted ? 'black' : 'white'} bold={isSelected}>
+                            <Text
+                                color={isHighlighted ? 'black' : (isWatched ? 'white' : 'gray')}
+                                bold={isSelected}
+                                dimColor={!isWatched && !isHighlighted}
+                            >
                                 {pkg.name.length > (isWatched || pkg.updateAvailable ? 20 : 25)
                                     ? pkg.name.substring(0, (isWatched || pkg.updateAvailable ? 19 : 24)) + '…'
                                     : pkg.name}
@@ -108,19 +116,19 @@ export const PackageList: React.FC<PackageListProps> = ({
 
                         {/* 版本列 */}
                         <Box width="20%">
-                            <Text color={pkg.updateAvailable ? 'green' : (isHighlighted ? 'black' : 'gray')}>
+                            <Text color={versionColor} dimColor={!isWatched && !pkg.updateAvailable && !isHighlighted}>
                                 {versionText.length > 15 && !isHighlighted ? versionText.substring(0, 14) + '…' : versionText}
                             </Text>
                         </Box>
 
                         {/* 大小列 */}
                         <Box width="15%">
-                            <Text color={isHighlighted ? 'black' : 'yellow'}>{sizeStr}</Text>
+                            <Text color={isHighlighted ? 'black' : 'yellow'} dimColor={!isWatched && !isHighlighted}>{sizeStr}</Text>
                         </Box>
 
                         {/* 日期列 */}
                         <Box width="25%">
-                            <Text color={isHighlighted ? 'black' : 'gray'}>{formatDate(pkg.installedDate)}</Text>
+                            <Text color={isHighlighted ? 'black' : 'gray'} dimColor={!isWatched && !isHighlighted}>{formatDate(pkg.installedDate)}</Text>
                         </Box>
                     </Box>
                 );

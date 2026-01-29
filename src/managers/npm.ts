@@ -1,6 +1,7 @@
 import { BasePackageManager } from './base.js';
 import type { Package, Dependency, DependencyType } from '../types/index.js';
-import { getDirectorySize, pathExists } from '../utils/path.js';
+import { PackageManagerType } from '../types/index.js';
+import { getDirectorySize } from '../utils/path.js';
 import path from 'path';
 import fs from 'fs/promises';
 import os from 'os';
@@ -9,8 +10,8 @@ import os from 'os';
  * npm包管理器适配器
  */
 export class NpmPackageManager extends BasePackageManager {
-    readonly name = 'npm';
-    protected readonly commandName = 'npm';
+    readonly name: string = 'npm';
+    protected readonly commandName: string = 'npm';
 
     async listPackages(globalOnly: boolean = true): Promise<Package[]> {
         const packages: Package[] = [];
@@ -113,7 +114,7 @@ export class NpmPackageManager extends BasePackageManager {
         }
     }
 
-    async getReverseDependencies(packageName: string): Promise<string[]> {
+    async getReverseDependencies(_packageName: string): Promise<string[]> {
         // npm doesn't provide easy reverse dependency lookup
         return [];
     }
@@ -140,7 +141,7 @@ export class NpmPackageManager extends BasePackageManager {
         return {
             name,
             version: info.version || 'unknown',
-            manager: 'npm',
+            manager: PackageManagerType.NPM,
             installPath,
             size: 0,
             dependenciesSize: 0,
@@ -149,6 +150,7 @@ export class NpmPackageManager extends BasePackageManager {
             description: '', // 后续异步加载
             isDev: false,
             isGlobal,
+            isChecking: true, // 标记为检查中，等待异步更新
         };
     }
 

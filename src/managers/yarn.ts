@@ -1,12 +1,13 @@
 import { NpmPackageManager } from './npm.js';
 import type { Package } from '../types/index.js';
+import { PackageManagerType } from '../types/index.js';
 
 /**
  * yarn包管理器适配器
  */
 export class YarnPackageManager extends NpmPackageManager {
-    readonly name = 'yarn';
-    protected readonly commandName = 'yarn';
+    override readonly name = 'yarn';
+    protected override readonly commandName = 'yarn';
 
     async listPackages(globalOnly: boolean = true): Promise<Package[]> {
         if (!globalOnly) {
@@ -84,13 +85,14 @@ export class YarnPackageManager extends NpmPackageManager {
         return {
             name,
             version,
-            manager: 'yarn',
+            manager: PackageManagerType.YARN,
             installPath: '',
             size: 0,
             dependenciesSize: 0,
             installedDate: new Date(),
             modifiedDate: new Date(),
             isGlobal,
+            isChecking: true, // 标记为检查中，等待异步更新
         };
     }
 }
