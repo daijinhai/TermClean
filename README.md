@@ -38,15 +38,42 @@ Term-Clean is built for you if you've ever faced these scenarios:
 
 ## 🚀 Quick Start
 
-### Installation
+### Local Setup
 
-You can install it globally via npm:
+> **Note**: term-clean is not yet published to npm. Please follow these steps to run locally:
 
-```bash
-npm install -g term-clean
-```
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/daijinhai/TermClean.git
+   cd TermClean
+   ```
 
-*(Note: The code is currently in the development phase. You can clone the repository and run `npm link` for testing)*
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Run Options**
+
+   **Option A: Development Mode (Recommended for dev)**
+   ```bash
+   npm run dev        # Start watch mode in one terminal
+   node dist/cli.js   # Run the CLI in another terminal
+   ```
+
+   **Option B: Production Build (Recommended for testing)**
+   ```bash
+   npm run build
+   npm start
+   ```
+
+   **Option C: Global Link (Recommended for daily use)**
+   ```bash
+   npm link           # Link package globally
+   term-clean         # Run command directly
+   ```
+
+> **Future**: Once published, you can install via `npm install -g term-clean`.
 
 ### Usage
 
@@ -127,20 +154,10 @@ term-clean --debug
 
 ## 🛠️ Development & Testing
 
-If you wish to participate in development or run the project locally:
-
 ### Prerequisites
 
 - Node.js (v18+ recommended)
 - npm / pnpm / yarn
-
-### Local Setup
-
-1. Clone the repository
-2. Install dependencies: `npm install`
-3. Run in development mode: `npm run dev`
-4. Build the project: `npm run build`
-5. Run the built program: `node dist/cli.js`
 
 ### Testing
 
