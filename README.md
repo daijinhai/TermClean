@@ -38,9 +38,23 @@ Term-Clean is built for you if you've ever faced these scenarios:
 
 ## 🚀 Quick Start
 
-### Local Setup
+### Quick Start
 
-> **Note**: term-clean is not yet published to npm. Please follow these steps to run locally:
+You can run `term-clean` instantly using `npx`:
+
+```bash
+npx term-clean
+```
+
+Or install it globally:
+
+```bash
+npm install -g term-clean
+```
+
+### Development Setup
+
+If you want to contribute or run the source code locally:
 
 1. **Clone the repository**
    ```bash
@@ -72,8 +86,6 @@ Term-Clean is built for you if you've ever faced these scenarios:
    npm link           # Link package globally
    term-clean         # Run command directly
    ```
-
-> **Future**: Once published, you can install via `npm install -g term-clean`.
 
 ### Usage
 
